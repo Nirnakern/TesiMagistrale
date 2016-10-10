@@ -265,7 +265,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
         //In this demo, we test the YUV data by saving it into JPG files.
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
@@ -333,8 +333,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         /*color*/
 
         int blue = 0b0000000000001111;
-        int green = 0b0000000000001111;
-        int red = 0b0000000000001111;
+        int green = 0b0000000011110000;
+        int red = 0b0000111100000000;
         int alpha = 0b0000000000001111;
 
         /*here we just create a file where we can write*/
@@ -380,28 +380,67 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         /*do some color stuff*/
-        /*
-        for (int i = 0; i < prevSizeW; i++){
-            for (int j = 0; j < prevSizeH; j++){
+int j2=0,i2=0;
+
+
+        //solo parte sotto dell'immagine
+/*
+       for (int i = 0; i < bmpout.getWidth()-2; i++){
+            for (int j = bmpout.getHeight()/2; j < bmpout.getHeight()-2; j++){
+
+                int pixel=bmpout.getPixel(i,j);
+
                 int mycolor ;
 
-                mycolor = bmpout.getPixel(i,j);
-                int newcolor = mycolor & blue;
+                int newpixel = Color.argb(pixel &alpha ,pixel &red,pixel &green,pixel &blue);
+                //mycolor = bmpout.getPixel(i,j);
+                //int newcolor = mycolor & blue;
 
-                bmpout.setPixel(i,j,newcolor);
 
+
+
+                bmpout.setPixel(i,j,newpixel);
+                j2=j;
+                i2=i;
 
             }
-        }
+        }*/
 
+        //copy the bitmap in array, ezpz
+        int width = bmpout.getWidth();
+        int height = bmpout.getHeight();
+
+        int[] pixels = new int[width * height];
+        bmpout.getPixels(pixels, 0, width, 0, 0, width, height);
+
+
+
+        showToast("fatto cose"+Integer.toString(i2)+"-----"+Integer.toString(j2));
+
+
+        // showToast(Integer.toString(bmpout.getWidth())+"----"+Integer.toString(bmpout.getHeight()));
+        /*
+
+
+                int newpixel = Color.argb(1,0,0,220);
+        bmpout.setPixel(10,10,newpixel);
+        bmpout.setPixel(11,10,newpixel);
+        bmpout.setPixel(10,11,newpixel);
+        bmpout.setPixel(11,11,newpixel);
+        bmpout.setPixel(12,10,newpixel);
+        bmpout.setPixel(10,12,newpixel);
 */
+
+
 
 
         /*here we convert our RGB bitmap to jpeg and write to file (so usless, just to check img is still good)*/
         bmpout.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
         try {
             outputFile.close();
+            bmpout.recycle();
             showToast("Saved File");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
