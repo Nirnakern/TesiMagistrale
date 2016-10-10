@@ -2,6 +2,8 @@ package com.dji.videostreamdecodingsample;
 
 import android.Manifest;
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -13,6 +15,11 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Bundle;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicYuvToRGB;
+import android.renderscript.Type;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -38,6 +45,7 @@ import dji.sdk.camera.DJICamera;
 import dji.sdk.codec.DJICodecManager;
 import dji.sdk.base.DJIBaseProduct;
 
+
 public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuvDataListener {
     private static final String TAG = MainActivity.class.getSimpleName();
     static final int MSG_WHAT_SHOW_TOAST = 0;
@@ -61,6 +69,15 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     protected DJICamera.CameraReceivedVideoDataCallback mReceivedVideoDataCallBack = null;
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
+
+
+    /*cose per la conversione in bitmap*/
+
+    private RenderScript rs;
+    private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
+    private Type.Builder yuvType, rgbaType;
+    private Allocation in, out;
+
 
     @Override
     protected void onResume() {
@@ -248,19 +265,32 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
         //In this demo, we test the YUV data by saving it into JPG files.
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) {
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { /*famo la cosa ogni 30 frame*/
+
+            /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
             byte[] u = new byte[width * height / 4];
             byte[] v = new byte[width * height / 4];
             byte[] nu = new byte[width * height / 4]; //
             byte[] nv = new byte[width * height / 4];
+
+
+            /*copio yuv frame in y per w*h posti*/
             System.arraycopy(yuvFrame, 0, y, 0, y.length);
+
+
+            /*copio u e v*/
             for (int i = 0; i < u.length; i++) {
                 v[i] = yuvFrame[y.length + 2 * i];
                 u[i] = yuvFrame[y.length + 2 * i + 1];
             }
+
+
+            /* giusto variabili sensate  */
             int uvWidth = width / 2;
             int uvHeight = height / 2;
+
+
             for (int j = 0; j < uvWidth / 2; j++) {
                 for (int i = 0; i < uvHeight / 2; i++) {
                     byte uSample1 = u[i * uvWidth + j];
@@ -284,14 +314,102 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 bytes[y.length + (i * 2)] = nv[i];
                 bytes[y.length + (i * 2) + 1] = nu[i];
             }
-            Log.d(TAG,
+
+            dostuff(bytes,Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
+
+
+         /*   Log.d(TAG,
                     "onYuvDataReceived: frame index: "
                             + DJIVideoStreamDecoder.getInstance().frameIndex
                             + ",array length: "
                             + bytes.length);
-            screenShot(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
+            screenShot(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");*/
         }
     }
+
+    private void dostuff(byte[] bytes, String shotDir) {
+
+
+        /*color*/
+
+        int blue = 0b0000000000001111;
+        int green = 0b0000000000001111;
+        int red = 0b0000000000001111;
+        int alpha = 0b0000000000001111;
+
+        /*here we just create a file where we can write*/
+        File dir = new File(shotDir);
+        if (!dir.exists() || !dir.isDirectory()) {
+            dir.mkdirs();
+        }
+        OutputStream outputFile;
+        final String path = dir + "/ScreenShot_" + System.currentTimeMillis() + "RGB version.jpg";
+        try {
+            outputFile = new FileOutputStream(new File(path));
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
+            return;
+        }
+
+
+        /*fixed dimension of image*/
+        int prevSizeW =1280;
+        int prevSizeH=720;
+
+
+        /*here the magic create the rgb bitmap*/
+        rs = RenderScript.create(this);
+        yuvToRgbIntrinsic = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs));
+
+        if (yuvType == null)
+        {
+            yuvType = new Type.Builder(rs, Element.U8(rs)).setX(bytes.length);
+            in = Allocation.createTyped(rs, yuvType.create(), Allocation.USAGE_SCRIPT);
+
+            rgbaType = new Type.Builder(rs, Element.RGBA_8888(rs)).setX(prevSizeW).setY(prevSizeH);
+            out = Allocation.createTyped(rs, rgbaType.create(), Allocation.USAGE_SCRIPT);
+        }
+
+        in.copyFrom(bytes);
+
+        yuvToRgbIntrinsic.setInput(in);
+        yuvToRgbIntrinsic.forEach(out);
+
+        Bitmap bmpout = Bitmap.createBitmap(prevSizeW, prevSizeH, Bitmap.Config.ARGB_8888);
+        out.copyTo(bmpout);
+
+
+        /*do some color stuff*/
+        /*
+        for (int i = 0; i < prevSizeW; i++){
+            for (int j = 0; j < prevSizeH; j++){
+                int mycolor ;
+
+                mycolor = bmpout.getPixel(i,j);
+                int newcolor = mycolor & blue;
+
+                bmpout.setPixel(i,j,newcolor);
+
+
+            }
+        }
+
+*/
+
+
+        /*here we convert our RGB bitmap to jpeg and write to file (so usless, just to check img is still good)*/
+        bmpout.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
+        try {
+            outputFile.close();
+            showToast("Saved File");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        yuvType = null;
+
+    }
+
 
     /**
      * Save the buffered data into a JPG image file
