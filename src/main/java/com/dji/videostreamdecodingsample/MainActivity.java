@@ -34,8 +34,10 @@ import com.dji.videostreamdecodingsample.media.DJIVideoStreamDecoder;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -332,10 +334,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         /*color*/
 
-        int blue = 0b0000000000001111;
-        int green = 0b0000000011110000;
-        int red = 0b0000111100000000;
-        int alpha = 0b0000000000001111;
+        int blue = 0b000000000000000011111111; //che poi è red
+
+        int green = 0b000000001111111100000000;  //green
+        int red = 0b111111110000000000000000;    //blue
+        int alpha = 0b111111110000000000000000000000;
 
         /*here we just create a file where we can write*/
         File dir = new File(shotDir);
@@ -350,6 +353,21 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
             return;
         }
+
+
+
+        /*here we create the file for debug*/
+/*
+        FileWriter fWriter=null;
+        File sdCardFile = new File(shotDir);
+        final String debug_path = sdCardFile + "/ScreenShot_" + System.currentTimeMillis() + "debug.txt";
+
+        try {
+            fWriter = new FileWriter(debug_path, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
 
 
         /*fixed dimension of image*/
@@ -415,6 +433,59 @@ int j2=0,i2=0;
 
 
 
+        //create array
+
+        for (int i=0;i<width*height;i++){
+
+            int pixel = pixels[i];
+
+
+
+            //get different component
+
+            int pixel_red = pixel & red;
+            pixel_red=pixel_red>>16;
+            int pixel_green = pixel & green;
+            int pixel_blue = pixel & blue;
+            pixel_blue=pixel_blue<<16;
+
+            pixel = pixel_blue+pixel_green+pixel_red;
+
+
+
+            /*try {
+                fWriter.write(Integer.toString(pixel));
+                fWriter.write("\n\n");
+                fWriter.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+*/
+
+            pixels[i]=pixel;
+        }
+/*
+        try {
+            fWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            fWriter.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+*/
+
+        //create new bitmap from array
+
+        Bitmap bmpout2 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+
+        bmpout2.copyPixelsFromBuffer(IntBuffer.wrap(pixels));
+
+
+
         showToast("fatto cose"+Integer.toString(i2)+"-----"+Integer.toString(j2));
 
 
@@ -435,15 +506,17 @@ int j2=0,i2=0;
 
 
         /*here we convert our RGB bitmap to jpeg and write to file (so usless, just to check img is still good)*/
-        bmpout.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
+        bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
         try {
             outputFile.close();
             bmpout.recycle();
+            bmpout2.recycle();
             showToast("Saved File");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
 
         yuvType = null;
 
