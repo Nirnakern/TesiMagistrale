@@ -356,19 +356,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        /*here we create the file for debug*/
-/*
-        FileWriter fWriter=null;
-        File sdCardFile = new File(shotDir);
-        final String debug_path = sdCardFile + "/ScreenShot_" + System.currentTimeMillis() + "debug.txt";
-
-        try {
-            fWriter = new FileWriter(debug_path, true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-
-
 
         /*fixed dimension of image*/
         int prevSizeW =1280;
@@ -397,43 +384,23 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         out.copyTo(bmpout);
 
 
-        /*do some color stuff*/
-int j2=0,i2=0;
 
 
-        //solo parte sotto dell'immagine
-/*
-       for (int i = 0; i < bmpout.getWidth()-2; i++){
-            for (int j = bmpout.getHeight()/2; j < bmpout.getHeight()-2; j++){
-
-                int pixel=bmpout.getPixel(i,j);
-
-                int mycolor ;
-
-                int newpixel = Color.argb(pixel &alpha ,pixel &red,pixel &green,pixel &blue);
-                //mycolor = bmpout.getPixel(i,j);
-                //int newcolor = mycolor & blue;
-
-
-
-
-                bmpout.setPixel(i,j,newpixel);
-                j2=j;
-                i2=i;
-
-            }
-        }*/
 
         //copy the bitmap in array, ezpz
         int width = bmpout.getWidth();
         int height = bmpout.getHeight();
 
         int[] pixels = new int[width * height];
+        int[] pixels_red = new int[width * height];
+        int[] pixels_green =  new int[width * height];
+        int[] pixels_blue =  new int[width * height];
+        int[] pixels_alpha =  new int[width * height];
         bmpout.getPixels(pixels, 0, width, 0, 0, width, height);
 
 
 
-        //create array
+        //create array of different components
 
         for (int i=0;i<width*height;i++){
 
@@ -445,38 +412,59 @@ int j2=0,i2=0;
 
             int pixel_red = pixel & red;
             pixel_red=pixel_red>>16;
+            pixels_red[i]=pixel_red;
+
             int pixel_green = pixel & green;
+            pixels_green[i]= pixel_green;
+
             int pixel_blue = pixel & blue;
             pixel_blue=pixel_blue<<16;
-
-            pixel = pixel_blue+pixel_green+pixel_red;
-
+            pixels_blue[i]= pixel_blue;
 
 
-            /*try {
-                fWriter.write(Integer.toString(pixel));
-                fWriter.write("\n\n");
-                fWriter.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
+        }
+
+
+        //experimenting
+
+        for (int i=0;i<width*height;i++){
+
+            //normalize component
+
+            int red_pixel = pixels_red[i];
+            int green_pixel= pixels_green[i]>>8;
+            int blue_pixel= pixels_blue[i]>>16;
+            int alpha_pixel;
+
+
+            //do stuff
+            if (red_pixel >green_pixel*1.2 && red_pixel >blue_pixel*1.2){
+                alpha_pixel=250;
+                red_pixel=254;
+                green_pixel=254;
+                blue_pixel=254;
+            }else{
+
+                alpha_pixel=1;
             }
-*/
 
-            pixels[i]=pixel;
-        }
-/*
-        try {
-            fWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            fWriter.close();
+            //reconvert and assign
 
-        } catch (IOException e) {
-            e.printStackTrace();
+            pixels_red[i]= red_pixel;
+            pixels_green[i]= green_pixel<<8;
+            pixels_blue[i]= blue_pixel<<16;
+            pixels_alpha[i]=alpha_pixel<<24;
+
+
+
         }
-*/
+
+        //recreate full image with all components
+
+        for (int i=0;i<width*height;i++) {
+            pixels[i] = pixels_blue[i] + pixels_green[i] + pixels_red[i]+pixels_alpha[i];
+
+        }
 
         //create new bitmap from array
 
@@ -486,21 +474,9 @@ int j2=0,i2=0;
 
 
 
-        showToast("fatto cose"+Integer.toString(i2)+"-----"+Integer.toString(j2));
+        showToast("fatto cose");
 
 
-        // showToast(Integer.toString(bmpout.getWidth())+"----"+Integer.toString(bmpout.getHeight()));
-        /*
-
-
-                int newpixel = Color.argb(1,0,0,220);
-        bmpout.setPixel(10,10,newpixel);
-        bmpout.setPixel(11,10,newpixel);
-        bmpout.setPixel(10,11,newpixel);
-        bmpout.setPixel(11,11,newpixel);
-        bmpout.setPixel(12,10,newpixel);
-        bmpout.setPixel(10,12,newpixel);
-*/
 
 
 
