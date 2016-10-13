@@ -73,7 +73,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
 
-    /*cose per la conversione in bitmap*/
+    /*cose per la conversione in RGB*/
 
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
@@ -266,7 +266,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
-        //In this demo, we test the YUV data by saving it into JPG files.
+
         if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
