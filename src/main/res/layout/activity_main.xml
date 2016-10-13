@@ -48,7 +48,7 @@
         android:paddingTop="10dp"
         android:paddingStart="10dp" />
     <ImageView
-        android:id="@+id/livestream_live_view"
+        android:id="@+id/show_picture"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerInParent="true"

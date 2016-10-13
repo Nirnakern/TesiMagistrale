@@ -26,6 +26,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -57,6 +58,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private TextureView videostreamPreviewTtView;
     private SurfaceView videostreamPreviewSf;
     private SurfaceHolder videostreamPreviewSh;
+
+    private ImageView show_image;
 
     private DJIBaseProduct mProduct;
     private DJICamera mCamera;
@@ -161,6 +164,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     private void initUi() {
+
+        show_image = (ImageView) findViewById(R.id.show_picture);
+
         savePath = (TextView) findViewById(R.id.activity_main_save_path);
         screenShot = (TextView) findViewById(R.id.activity_main_screen_shot);
         screenShot.setSelected(false);
@@ -380,7 +386,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         yuvToRgbIntrinsic.setInput(in);
         yuvToRgbIntrinsic.forEach(out);
 
-        Bitmap bmpout = Bitmap.createBitmap(prevSizeW, prevSizeH, Bitmap.Config.ARGB_8888);
+        final Bitmap bmpout = Bitmap.createBitmap(prevSizeW, prevSizeH, Bitmap.Config.ARGB_8888);
         out.copyTo(bmpout);
 
 
@@ -468,13 +474,21 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         //create new bitmap from array
 
-        Bitmap bmpout2 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        final Bitmap bmpout2 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 
         bmpout2.copyPixelsFromBuffer(IntBuffer.wrap(pixels));
 
 
 
-        showToast("fatto cose");
+        //showToast("fatto cose");
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                show_image.setImageBitmap(bmpout);
+            }
+        });
 
 
 
@@ -495,6 +509,15 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         yuvType = null;
+
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                displayPath(path);
+            }
+        });
+
 
     }
 
@@ -547,12 +570,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
             savePath.setText("");
             savePath.setVisibility(View.INVISIBLE);
+            show_image.setVisibility(View.INVISIBLE);
+            videostreamPreviewTtView.setVisibility(View.VISIBLE);
+            videostreamPreviewSf.setVisibility(View.VISIBLE);
         } else {
             screenShot.setText("Live Stream");
             screenShot.setSelected(true);
             DJIVideoStreamDecoder.getInstance().changeSurface(null);
             savePath.setText("");
             savePath.setVisibility(View.VISIBLE);
+            show_image.setVisibility(View.VISIBLE);
+            videostreamPreviewTtView.setVisibility(View.INVISIBLE);
+            videostreamPreviewSf.setVisibility(View.INVISIBLE);
             pathList.clear();
         }
     }
