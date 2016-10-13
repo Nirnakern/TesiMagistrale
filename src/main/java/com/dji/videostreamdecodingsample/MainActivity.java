@@ -75,9 +75,17 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJICamera.CameraReceivedVideoDataCallback mReceivedVideoDataCallBack = null;
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
+    /*color*/
+    int blue = 0b000000000000000011111111;
+    int green = 0b000000001111111100000000;
+    int red = 0b111111110000000000000000;
+    int alpha = 0b111111110000000000000000000000;
+
+    /*fixed dimension of image*/
+    int prevSizeW =1280;
+    int prevSizeH=720;
 
     /*cose per la conversione in RGB*/
-
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
     private Type.Builder yuvType, rgbaType;
@@ -337,16 +345,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private void dostuff(byte[] bytes, String shotDir) {
 
-
-        /*color*/
-
-        int blue = 0b000000000000000011111111; //che poi è red
-
-        int green = 0b000000001111111100000000;  //green
-        int red = 0b111111110000000000000000;    //blue
-        int alpha = 0b111111110000000000000000000000;
-
-        /*here we just create a file where we can write*/
+        /*Create file for image*/
         File dir = new File(shotDir);
         if (!dir.exists() || !dir.isDirectory()) {
             dir.mkdirs();
@@ -360,15 +359,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             return;
         }
 
-
-
-
-        /*fixed dimension of image*/
-        int prevSizeW =1280;
-        int prevSizeH=720;
-
-
-        /*here the magic create the rgb bitmap*/
+        /*convert YUV to ARGB*/
         rs = RenderScript.create(this);
         yuvToRgbIntrinsic = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs));
 
@@ -389,50 +380,45 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         final Bitmap bmpout = Bitmap.createBitmap(prevSizeW, prevSizeH, Bitmap.Config.ARGB_8888);
         out.copyTo(bmpout);
 
-
-
-
-
-        //copy the bitmap in array, ezpz
+        /*copy bitmap in array*/
         int width = bmpout.getWidth();
         int height = bmpout.getHeight();
 
-        int[] pixels = new int[width * height];
-        int[] pixels_red = new int[width * height];
-        int[] pixels_green =  new int[width * height];
-        int[] pixels_blue =  new int[width * height];
-        int[] pixels_alpha =  new int[width * height];
-        bmpout.getPixels(pixels, 0, width, 0, 0, width, height);
+        int[] pixels_l = new int[width * height];
+        int[][] pixels = new int[width] [height];
+        int[][] pixels_red = new int[width] [height];
+        int[][] pixels_green =  new int[width] [height];
+        int[][] pixels_blue =  new int[width] [height];
+        int[][] pixels_alpha =  new int[width] [height];
+        bmpout.getPixels(pixels_l, 0, width, 0, 0, width, height);
 
 
 
-        //create array of different components
-
+        //create matrix of different components
         for (int i=0;i<width*height;i++){
 
-            int pixel = pixels[i];
+            int pixel = pixels_l[i];
 
+            pixels[i%width][i/width]=pixels_l[i];
 
-
-            //get different component
-
+            //different component
             int pixel_red = pixel & red;
             pixel_red=pixel_red>>16;
-            pixels_red[i]=pixel_red;
+            pixels_red[i%width][i/width]=pixel_red;
 
             int pixel_green = pixel & green;
-            pixels_green[i]= pixel_green;
+            pixels_green[i%width][i/width]= pixel_green;
 
             int pixel_blue = pixel & blue;
             pixel_blue=pixel_blue<<16;
-            pixels_blue[i]= pixel_blue;
+            pixels_blue[i%width][i/width]= pixel_blue;
 
 
         }
 
 
         //experimenting
-
+/*
         for (int i=0;i<width*height;i++){
 
             //normalize component
@@ -464,38 +450,28 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         }
+*/
 
-        //recreate full image with all components
-
+        //recreate array RGB from components matrix
         for (int i=0;i<width*height;i++) {
-            pixels[i] = pixels_blue[i] + pixels_green[i] + pixels_red[i]+pixels_alpha[i];
+            pixels_l[i] = pixels_blue[i%width][i/width] + pixels_green[i%width][i/width] + pixels_red[i%width][i/width]+pixels_alpha[i%width][i/width];
 
         }
 
         //create new bitmap from array
-
         final Bitmap bmpout2 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        bmpout2.copyPixelsFromBuffer(IntBuffer.wrap(pixels_l));
 
-        bmpout2.copyPixelsFromBuffer(IntBuffer.wrap(pixels));
-
-
-
-        //showToast("fatto cose");
-
+        //show taken and processed image
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
-                show_image.setImageBitmap(bmpout);
+                show_image.setImageBitmap(bmpout2);
             }
         });
 
-
-
-
-
-
-        /*here we convert our RGB bitmap to jpeg and write to file (so usless, just to check img is still good)*/
+        /*convert RGB bitmap to jpeg and write to file*/
         bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
         try {
             outputFile.close();
@@ -510,7 +486,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         yuvType = null;
 
-
+        //show path of saved image
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -519,48 +495,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         });
 
 
-    }
-
-
-    /**
-     * Save the buffered data into a JPG image file
-     */
-    private void screenShot(byte[] buf, String shotDir) {
-        File dir = new File(shotDir);
-        if (!dir.exists() || !dir.isDirectory()) {
-            dir.mkdirs();
-        }
-        YuvImage yuvImage = new YuvImage(buf,
-                ImageFormat.NV21,
-                DJIVideoStreamDecoder.getInstance().width,
-                DJIVideoStreamDecoder.getInstance().height,
-                null);
-        OutputStream outputFile;
-        final String path = dir + "/ScreenShot_" + System.currentTimeMillis() + ".jpg";
-        try {
-            outputFile = new FileOutputStream(new File(path));
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
-            return;
-        }
-        if (outputFile != null) {
-            yuvImage.compressToJpeg(new Rect(0,
-                    0,
-                    DJIVideoStreamDecoder.getInstance().width,
-                    DJIVideoStreamDecoder.getInstance().height), 100, outputFile);
-        }
-        try {
-            outputFile.close();
-        } catch (IOException e) {
-            Log.e(TAG, "test screenShot: compress yuv image error: " + e);
-            e.printStackTrace();
-        }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                displayPath(path);
-            }
-        });
     }
 
     public void onClick(View v) {
