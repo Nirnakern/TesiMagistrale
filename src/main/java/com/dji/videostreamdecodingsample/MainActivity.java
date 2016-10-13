@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
@@ -22,6 +23,8 @@ import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.Display;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -60,6 +63,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private SurfaceHolder videostreamPreviewSh;
 
     private ImageView show_image;
+    int contatore;
 
     private DJIBaseProduct mProduct;
     private DJICamera mCamera;
@@ -84,6 +88,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     /*fixed dimension of image*/
     int prevSizeW =1280;
     int prevSizeH=720;
+
+    /*point of touch*/
+    int x_touch=0;
+    int y_touch=0;
+
 
     /*cose per la conversione in RGB*/
     private RenderScript rs;
@@ -345,6 +354,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private void dostuff(byte[] bytes, String shotDir) {
 
+
+
         /*Create file for image*/
         File dir = new File(shotDir);
         if (!dir.exists() || !dir.isDirectory()) {
@@ -417,40 +428,49 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
 
-        //experimenting
-/*
+
+
+
+        /*get color of touched pixel in 0-255*/
+
+        int touched_R=pixels_red[x_touch][y_touch];
+        int touched_G=pixels_green[x_touch][y_touch]>>8;
+        int touched_B=pixels_blue[x_touch][y_touch]>>16;
+
+        showToast(Integer.toString(touched_R)+" "+Integer.toString(touched_G)+" "+Integer.toString(touched_B));
+        contatore=0;
         for (int i=0;i<width*height;i++){
 
-            //normalize component
 
-            int red_pixel = pixels_red[i];
-            int green_pixel= pixels_green[i]>>8;
-            int blue_pixel= pixels_blue[i]>>16;
-            int alpha_pixel;
+            //rimappa in 0-255
+            int shifted_red_pixel=pixels_red[i%width][i/width];
+            int shifted_green_pixel=(pixels_green[i%width][i/width])>>8;
+            int shifted_blue_pixel=(pixels_blue[i%width][i/width])>>16;
 
 
-            //do stuff
-            if (red_pixel >green_pixel*1.2 && red_pixel >blue_pixel*1.2){
-                alpha_pixel=250;
-                red_pixel=254;
-                green_pixel=254;
-                blue_pixel=254;
-            }else{
-
-                alpha_pixel=1;
+            if ((shifted_red_pixel>=touched_R*0.8 && shifted_red_pixel<=touched_R*1.2)
+                    && (shifted_green_pixel>=touched_G*0.8 && shifted_green_pixel<=touched_G*1.2)
+                    && (shifted_blue_pixel>=touched_B*0.8 && shifted_red_pixel<=touched_B*1.2)) {
+                contatore=contatore+1;
+                shifted_red_pixel=254;
+                shifted_green_pixel=254;
+                //pixels_green[i%width][i/width]=pixels_green[i%width][i/width]<<8;
+                shifted_blue_pixel=254;
+                //pixels_green[i%width][i/width]=pixels_green[i%width][i/width]<<16;
             }
 
-            //reconvert and assign
 
-            pixels_red[i]= red_pixel;
-            pixels_green[i]= green_pixel<<8;
-            pixels_blue[i]= blue_pixel<<16;
-            pixels_alpha[i]=alpha_pixel<<24;
+
+            pixels_red[i%width][i/width]=shifted_red_pixel;
+            pixels_green[i%width][i/width]=shifted_green_pixel<<8;
+            pixels_blue[i%width][i/width]=shifted_blue_pixel<<16;
 
 
 
         }
-*/
+
+        showToast(Integer.toString(contatore));
+
 
         //recreate array RGB from components matrix
         for (int i=0;i<width*height;i++) {
@@ -477,7 +497,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             outputFile.close();
             bmpout.recycle();
             bmpout2.recycle();
-            showToast("Saved File");
+           // showToast("Saved File");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -516,6 +536,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             show_image.setVisibility(View.VISIBLE);
             videostreamPreviewTtView.setVisibility(View.INVISIBLE);
             videostreamPreviewSf.setVisibility(View.INVISIBLE);
+
             pathList.clear();
         }
     }
@@ -533,6 +554,32 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             stringBuilder.append(pathList.get(i));
         }
         savePath.setText(stringBuilder.toString());
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        int[] loc = new int[2];
+        videostreamPreviewSf.getLocationOnScreen(loc);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        x_touch = (int) event.getX(); //x touch position
+        y_touch = (int) event.getY(); //y touch position
+
+        x_touch = x_touch-loc[0];   //offset picture
+        y_touch = y_touch-loc[1];   //offset picture
+
+        x_touch = x_touch*1280/size.x;  //normalization on picture dimension
+        y_touch = y_touch*720/size.y;   //normalization on picture dimension
+
+       // showToast("color selected");
+
+        //showToast(Integer.toString(x_touch)+"  "+Integer.toString(y_touch)+" "+Integer.toString(loc[0])+" "+Integer.toString(loc[1])+" "+Integer.toString(size.x)+Integer.toString(size.y));
+
+        return false;
     }
 
 }
