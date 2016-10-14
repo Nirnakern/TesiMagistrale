@@ -56,10 +56,11 @@
         android:layout_below="@id/main_title_rl"
 
         android:cropToPadding="true" />
+
     <TextView
         android:id="@+id/activity_main_screen_shot"
         android:layout_width="100dp"
-        android:layout_height="wrap_content"
+        android:layout_height="30dp"
         android:text="Screen Shot"
         android:clickable="true"
         android:onClick="onClick"
@@ -70,6 +71,7 @@
         android:layout_alignParentLeft="true"
         android:layout_below="@id/main_title_rl"
         />
+
     <TextView
         android:id="@+id/activity_main_save_path"
         android:layout_width="300dp"

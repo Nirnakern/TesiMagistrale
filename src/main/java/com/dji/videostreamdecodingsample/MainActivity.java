@@ -63,7 +63,13 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private SurfaceHolder videostreamPreviewSh;
 
     private ImageView show_image;
+
+
+
+
     int contatore;
+
+
 
     private DJIBaseProduct mProduct;
     private DJICamera mCamera;
@@ -93,6 +99,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int x_touch=0;
     int y_touch=0;
 
+    int touched_R=0;
+    int touched_G=0;
+    int touched_B=0;
+    boolean flag=false;
 
     /*cose per la conversione in RGB*/
     private RenderScript rs;
@@ -184,6 +194,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         show_image = (ImageView) findViewById(R.id.show_picture);
 
+
+
+
         savePath = (TextView) findViewById(R.id.activity_main_save_path);
         screenShot = (TextView) findViewById(R.id.activity_main_screen_shot);
         screenShot.setSelected(false);
@@ -208,6 +221,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             }
         });
+
+
+
     }
 
     private void notifyStatusChange() {
@@ -290,7 +306,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
@@ -352,11 +368,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
     }
 
-    private void dostuff(byte[] bytes, String shotDir) {
+    private synchronized void dostuff(byte[] bytes, String shotDir) {
 
 
 
         /*Create file for image*/
+        /*
         File dir = new File(shotDir);
         if (!dir.exists() || !dir.isDirectory()) {
             dir.mkdirs();
@@ -368,7 +385,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         } catch (FileNotFoundException e) {
             Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
             return;
-        }
+        }*/
 
         /*convert YUV to ARGB*/
         rs = RenderScript.create(this);
@@ -433,11 +450,16 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         /*get color of touched pixel in 0-255*/
 
-        int touched_R=pixels_red[x_touch][y_touch];
-        int touched_G=pixels_green[x_touch][y_touch]>>8;
-        int touched_B=pixels_blue[x_touch][y_touch]>>16;
+        if (flag==false) {
+            touched_R = pixels_red[x_touch][y_touch];
+            touched_G = (pixels_green[x_touch][y_touch]) >> 8;
+            touched_B = (pixels_blue[x_touch][y_touch]) >> 16;
+            flag=true;
 
-        showToast(Integer.toString(touched_R)+" "+Integer.toString(touched_G)+" "+Integer.toString(touched_B));
+        }
+
+
+       // showToast(Integer.toString(touched_R)+" "+Integer.toString(touched_G)+" "+Integer.toString(touched_B));
         contatore=0;
         for (int i=0;i<width*height;i++){
 
@@ -492,6 +514,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         });
 
         /*convert RGB bitmap to jpeg and write to file*/
+        /*
         bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
         try {
             outputFile.close();
@@ -501,18 +524,23 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
 
 
+
+        //clear
         yuvType = null;
 
+
+
         //show path of saved image
+        /*
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 displayPath(path);
             }
-        });
+        });*/
 
 
     }
@@ -557,7 +585,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
+    public synchronized boolean onTouchEvent(MotionEvent event) {
+
+
 
         int[] loc = new int[2];
         videostreamPreviewSf.getLocationOnScreen(loc);
@@ -574,6 +604,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         x_touch = x_touch*1280/size.x;  //normalization on picture dimension
         y_touch = y_touch*720/size.y;   //normalization on picture dimension
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(null);
+        flag=false;
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
+
 
        // showToast("color selected");
 
