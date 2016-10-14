@@ -472,7 +472,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             if ((shifted_red_pixel>=touched_R*0.8 && shifted_red_pixel<=touched_R*1.2)
                     && (shifted_green_pixel>=touched_G*0.8 && shifted_green_pixel<=touched_G*1.2)
-                    && (shifted_blue_pixel>=touched_B*0.8 && shifted_red_pixel<=touched_B*1.2)) {
+                    && (shifted_blue_pixel>=touched_B*0.8 && shifted_blue_pixel<=touched_B*1.2)) {
                 contatore=contatore+1;
                 shifted_red_pixel=254;
                 shifted_green_pixel=254;
