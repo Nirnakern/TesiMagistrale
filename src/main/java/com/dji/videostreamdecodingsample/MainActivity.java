@@ -431,11 +431,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
 
-
-
-
         /*get color of touched pixel in 0-255*/
-
+        /*Inverted becouse flipped screen*/
         if (flag==false) {
             touched_R = pixels_red[y_touch][x_touch];
             touched_G = (pixels_green[y_touch][x_touch]) >> 8;
@@ -500,13 +497,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         });
 
 
-
-
-
         //clear
         yuvType = null;
-
-
 
 
     }
