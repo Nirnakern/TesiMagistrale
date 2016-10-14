@@ -372,20 +372,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        /*Create file for image*/
-        /*
-        File dir = new File(shotDir);
-        if (!dir.exists() || !dir.isDirectory()) {
-            dir.mkdirs();
-        }
-        OutputStream outputFile;
-        final String path = dir + "/ScreenShot_" + System.currentTimeMillis() + "RGB version.jpg";
-        try {
-            outputFile = new FileOutputStream(new File(path));
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
-            return;
-        }*/
 
         /*convert YUV to ARGB*/
         rs = RenderScript.create(this);
@@ -413,11 +399,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         int height = bmpout.getHeight();
 
         int[] pixels_l = new int[width * height];
-        int[][] pixels = new int[width] [height];
-        int[][] pixels_red = new int[width] [height];
-        int[][] pixels_green =  new int[width] [height];
-        int[][] pixels_blue =  new int[width] [height];
-        int[][] pixels_alpha =  new int[width] [height];
+        int[][] pixels = new int[height] [width];
+        int[][] pixels_red = new int[height] [width];
+        int[][] pixels_green =  new int[height] [width];
+        int[][] pixels_blue =  new int[height] [width];
+        int[][] pixels_alpha =  new int[height] [width];
         bmpout.getPixels(pixels_l, 0, width, 0, 0, width, height);
 
 
@@ -427,19 +413,19 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             int pixel = pixels_l[i];
 
-            pixels[i%width][i/width]=pixels_l[i];
+            pixels[i/width][i%width]=pixels_l[i];
 
             //different component
             int pixel_red = pixel & red;
             pixel_red=pixel_red>>16;
-            pixels_red[i%width][i/width]=pixel_red;
+            pixels_red[i/width][i%width]=pixel_red;
 
             int pixel_green = pixel & green;
-            pixels_green[i%width][i/width]= pixel_green;
+            pixels_green[i/width][i%width]= pixel_green;
 
             int pixel_blue = pixel & blue;
             pixel_blue=pixel_blue<<16;
-            pixels_blue[i%width][i/width]= pixel_blue;
+            pixels_blue[i/width][i%width]= pixel_blue;
 
 
         }
@@ -451,9 +437,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         /*get color of touched pixel in 0-255*/
 
         if (flag==false) {
-            touched_R = pixels_red[x_touch][y_touch];
-            touched_G = (pixels_green[x_touch][y_touch]) >> 8;
-            touched_B = (pixels_blue[x_touch][y_touch]) >> 16;
+            touched_R = pixels_red[y_touch][x_touch];
+            touched_G = (pixels_green[y_touch][x_touch]) >> 8;
+            touched_B = (pixels_blue[y_touch][x_touch]) >> 16;
             flag=true;
 
         }
@@ -465,9 +451,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
             //rimappa in 0-255
-            int shifted_red_pixel=pixels_red[i%width][i/width];
-            int shifted_green_pixel=(pixels_green[i%width][i/width])>>8;
-            int shifted_blue_pixel=(pixels_blue[i%width][i/width])>>16;
+            int shifted_red_pixel=pixels_red[i/width][i%width];
+            int shifted_green_pixel=(pixels_green[i/width][i%width])>>8;
+            int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
             if ((shifted_red_pixel>=touched_R*0.8 && shifted_red_pixel<=touched_R*1.2)
@@ -483,9 +469,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-            pixels_red[i%width][i/width]=shifted_red_pixel;
-            pixels_green[i%width][i/width]=shifted_green_pixel<<8;
-            pixels_blue[i%width][i/width]=shifted_blue_pixel<<16;
+            pixels_red[i/width][i%width]=shifted_red_pixel;
+            pixels_green[i/width][i%width]=shifted_green_pixel<<8;
+            pixels_blue[i/width][i%width]=shifted_blue_pixel<<16;
 
 
 
@@ -496,7 +482,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         //recreate array RGB from components matrix
         for (int i=0;i<width*height;i++) {
-            pixels_l[i] = pixels_blue[i%width][i/width] + pixels_green[i%width][i/width] + pixels_red[i%width][i/width]+pixels_alpha[i%width][i/width];
+            pixels_l[i] = pixels_blue[i/width][i%width] + pixels_green[i/width][i%width] + pixels_red[i/width][i%width]+pixels_alpha[i/width][i%width];
 
         }
 
@@ -513,18 +499,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             }
         });
 
-        /*convert RGB bitmap to jpeg and write to file*/
-        /*
-        bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
-        try {
-            outputFile.close();
-            bmpout.recycle();
-            bmpout2.recycle();
-           // showToast("Saved File");
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
 
 
 
@@ -532,15 +507,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         yuvType = null;
 
 
-
-        //show path of saved image
-        /*
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                displayPath(path);
-            }
-        });*/
 
 
     }
