@@ -104,6 +104,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int touched_B=0;
     boolean flag=false;
 
+    /*clasterizzazione*/
+
+    int gruppi=0;
+
     /*cose per la conversione in RGB*/
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
@@ -306,7 +310,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
@@ -356,22 +360,28 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 bytes[y.length + (i * 2) + 1] = nu[i];
             }
 
-            dostuff(bytes,Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
+            findRGB(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
 
 
-         /*   Log.d(TAG,
-                    "onYuvDataReceived: frame index: "
-                            + DJIVideoStreamDecoder.getInstance().frameIndex
-                            + ",array length: "
-                            + bytes.length);
-            screenShot(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");*/
         }
     }
 
-    private synchronized void dostuff(byte[] bytes, String shotDir) {
+    private synchronized void findRGB(byte[] bytes , String shotDir) {
 
+        /*Create file for image*/
 
-
+        File dir = new File(shotDir);
+        if (!dir.exists() || !dir.isDirectory()) {
+            dir.mkdirs();
+        }
+        OutputStream outputFile;
+        final String path = dir + "/ScreenShot_" + System.currentTimeMillis() + "RGB version.jpg";
+        try {
+            outputFile = new FileOutputStream(new File(path));
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "test screenShot: new bitmap output file error: " + e);
+            return;
+        }
 
         /*convert YUV to ARGB*/
         rs = RenderScript.create(this);
@@ -404,6 +414,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         int[][] pixels_green =  new int[height] [width];
         int[][] pixels_blue =  new int[height] [width];
         int[][] pixels_alpha =  new int[height] [width];
+        boolean[][] marker =  new boolean[height] [width];
         bmpout.getPixels(pixels_l, 0, width, 0, 0, width, height);
 
 
@@ -442,8 +453,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
 
-       // showToast(Integer.toString(touched_R)+" "+Integer.toString(touched_G)+" "+Integer.toString(touched_B));
-        contatore=0;
         for (int i=0;i<width*height;i++){
 
 
@@ -453,33 +462,63 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
-            if ((shifted_red_pixel>=touched_R*0.8 && shifted_red_pixel<=touched_R*1.2)
-                    && (shifted_green_pixel>=touched_G*0.8 && shifted_green_pixel<=touched_G*1.2)
-                    && (shifted_blue_pixel>=touched_B*0.8 && shifted_blue_pixel<=touched_B*1.2)) {
-                contatore=contatore+1;
+            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.5)
+                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.5)
+                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.5)) {
+
+                marker[i/width][i%width]=true;
+
                 shifted_red_pixel=254;
                 shifted_green_pixel=254;
-                //pixels_green[i%width][i/width]=pixels_green[i%width][i/width]<<8;
                 shifted_blue_pixel=254;
-                //pixels_green[i%width][i/width]=pixels_green[i%width][i/width]<<16;
+
+            }else{
+                marker[i/width][i%width]=false;
             }
-
-
 
             pixels_red[i/width][i%width]=shifted_red_pixel;
             pixels_green[i/width][i%width]=shifted_green_pixel<<8;
             pixels_blue[i/width][i%width]=shifted_blue_pixel<<16;
 
+        }
 
+        //dostuff(marker);
+
+        marker= fillin (marker,width,height);
+        marker= fillin (marker,width,height);
+        marker= fillin (marker,width,height);
+
+        for (int i=0;i<width*height;i++){
+
+            if (marker[i/width][i%width]==true){
+                int shifted_red_pixel=254;
+                int shifted_green_pixel=254;
+                int shifted_blue_pixel=254;
+
+                pixels_red[i/width][i%width]=shifted_red_pixel;
+                pixels_green[i/width][i%width]=shifted_green_pixel<<8;
+                pixels_blue[i/width][i%width]=shifted_blue_pixel<<16;
+
+            }
 
         }
 
-        showToast(Integer.toString(contatore));
 
+
+
+
+
+        /*from here code to show image taken*/
 
         //recreate array RGB from components matrix
         for (int i=0;i<width*height;i++) {
             pixels_l[i] = pixels_blue[i/width][i%width] + pixels_green[i/width][i%width] + pixels_red[i/width][i%width]+pixels_alpha[i/width][i%width];
+
+               /* if (marker[i/width][i%width]==true){
+                    pixels_l[i]=pixels_l[i];
+
+                }*/
+
 
         }
 
@@ -497,11 +536,68 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         });
 
 
+
+
+        /*convert RGB bitmap to jpeg and write to file*/
+
+
+        bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
+        try {
+            outputFile.close();
+            bmpout.recycle();
+            bmpout2.recycle();
+           // showToast("Saved File");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
         //clear
         yuvType = null;
 
 
     }
+
+    private boolean[][] fillin(boolean[][] marker, int width, int height) {
+
+        boolean[][] marker_second =  new boolean[height] [width];
+
+        for (int i=1;i<height-1;i++){
+            for (int j=1;j<width-1;j++){
+                if(marker[i][j]==false){
+                    if(marker[i-1][j-1]==true || marker[i-1][j]==true || marker[i-1][j+1]==true
+                            || marker[i][j-1]==true || marker[i][j+1]==true
+                            || marker[i+1][j-1]==true || marker[i+1][j]==true || marker[i+1][j+1]==true){
+                        marker_second[i][j]=true;
+
+                    }
+                }
+
+            }
+
+        }
+
+        for (int i=1;i<height-1;i++) {
+            for (int j = 1; j < width - 1; j++) {
+                marker[i][j] = marker[i][j] | marker_second[i][j];
+            }
+        }
+
+
+
+        return marker;
+    }
+
+    private void dostuff(boolean[][] marker, int width, int height) {
+
+
+
+
+
+    }
+
 
     public void onClick(View v) {
         if (screenShot.isSelected()) {
