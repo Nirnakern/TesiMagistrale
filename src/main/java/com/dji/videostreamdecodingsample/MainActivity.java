@@ -92,8 +92,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int alpha = 0b111111110000000000000000000000;
 
     /*fixed dimension of image*/
-    int prevSizeW =1280;
-    int prevSizeH=720;
+    int SizeW =1280;
+    int SizeH=720;
 
     /*point of touch*/
     int x_touch=0;
@@ -105,6 +105,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     /*clasterizzazione*/
+    boolean[][] marker_global =  new boolean[SizeH] [SizeW];
 
     int gruppi=0;
 
@@ -392,7 +393,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             yuvType = new Type.Builder(rs, Element.U8(rs)).setX(bytes.length);
             in = Allocation.createTyped(rs, yuvType.create(), Allocation.USAGE_SCRIPT);
 
-            rgbaType = new Type.Builder(rs, Element.RGBA_8888(rs)).setX(prevSizeW).setY(prevSizeH);
+            rgbaType = new Type.Builder(rs, Element.RGBA_8888(rs)).setX(SizeW).setY(SizeH);
             out = Allocation.createTyped(rs, rgbaType.create(), Allocation.USAGE_SCRIPT);
         }
 
@@ -401,7 +402,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         yuvToRgbIntrinsic.setInput(in);
         yuvToRgbIntrinsic.forEach(out);
 
-        final Bitmap bmpout = Bitmap.createBitmap(prevSizeW, prevSizeH, Bitmap.Config.ARGB_8888);
+        final Bitmap bmpout = Bitmap.createBitmap(SizeW, SizeH, Bitmap.Config.ARGB_8888);
         out.copyTo(bmpout);
 
         /*copy bitmap in array*/
@@ -462,9 +463,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
-            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.5)
-                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.5)
-                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.5)) {
+            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.7)
+                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.7)
+                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.7)) {
 
                 marker[i/width][i%width]=true;
 
@@ -482,7 +483,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         }
 
-        //dostuff(marker);
+
 
         marker= fillin (marker,width,height);
         marker= fillin (marker,width,height);
@@ -590,12 +591,59 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         return marker;
     }
 
-    private void dostuff(boolean[][] marker, int width, int height) {
+    private ArrayList dostuff(boolean[][] marker, int width, int height) {
+
+        ArrayList<Point> centers = new ArrayList<>();
+        ArrayList<Point> marked = new ArrayList<>();
+
+        for (int i=0;i<width*height;) {
+            marker_global[i/width][i%width]=marker[i/width][i%width];
+        }
+
+
+        marked = find_true(marker, width, height);
+
+        for(int i=0;i<marked.size();i++) {
+            centers.add(find_center(marked.get(i)));
+        }
 
 
 
 
+        return centers;
 
+
+    }
+
+    private Point find_center(Point point) {
+
+        Point center=null;
+
+        while(true){
+
+            break;
+        }
+
+
+        return center;
+    }
+
+    private ArrayList<Point> find_true(boolean[][] marker, int width, int height) {
+
+        ArrayList<Point> marked = new ArrayList<>();
+
+        for (int i=0;i<width*height;) {
+            if (marker[i/width][i%width]==true){
+                Point p = new Point(i%width,i/width);
+                marked.add(p);
+            }
+
+            i=i+5;
+
+        }
+
+
+     return marked;
     }
 
 
