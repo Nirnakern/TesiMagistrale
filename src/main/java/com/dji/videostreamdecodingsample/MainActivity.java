@@ -106,6 +106,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     /*clasterizzazione*/
     boolean[][] marker_global =  new boolean[SizeH] [SizeW];
+    ArrayList<Point> global_marked = new ArrayList<>();
 
     int gruppi=0;
 
@@ -463,9 +464,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
-            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.7)
-                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.7)
-                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.7)) {
+            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.8)
+                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.8)
+                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.8)) {
 
                 marker[i/width][i%width]=true;
 
@@ -488,6 +489,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         marker= fillin (marker,width,height);
         marker= fillin (marker,width,height);
         marker= fillin (marker,width,height);
+        find_center(marker,width,height);
 
         for (int i=0;i<width*height;i++){
 
@@ -591,21 +593,24 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         return marker;
     }
 
-    private ArrayList dostuff(boolean[][] marker, int width, int height) {
+    private ArrayList find_center(boolean[][] marker, int width, int height) {
 
         ArrayList<Point> centers = new ArrayList<>();
         ArrayList<Point> marked = new ArrayList<>();
 
-        for (int i=0;i<width*height;) {
+        //showToast(Integer.toString(width)+"   "+Integer.toString(height));
+
+
+        for (int i=0;i<width*height;i++) {
             marker_global[i/width][i%width]=marker[i/width][i%width];
         }
 
 
         marked = find_true(marker, width, height);
 
-        for(int i=0;i<marked.size();i++) {
-            centers.add(find_center(marked.get(i)));
-        }
+        showToast(Integer.toString(marked.size()));
+
+
 
 
 
@@ -615,18 +620,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     }
 
-    private Point find_center(Point point) {
-
-        Point center=null;
-
-        while(true){
-
-            break;
-        }
-
-
-        return center;
-    }
 
     private ArrayList<Point> find_true(boolean[][] marker, int width, int height) {
 
@@ -638,7 +631,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 marked.add(p);
             }
 
-            i=i+5;
+            i=i+15;
 
         }
 
