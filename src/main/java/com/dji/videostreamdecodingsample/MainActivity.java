@@ -107,6 +107,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     /*clasterizzazione*/
     boolean[][] marker_global =  new boolean[SizeH] [SizeW];
     ArrayList<Point> global_marked = new ArrayList<>();
+    ArrayList<Point> centri = new ArrayList<>();
 
     int gruppi=0;
 
@@ -312,7 +313,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 180 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
@@ -369,6 +370,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     private synchronized void findRGB(byte[] bytes , String shotDir) {
+
+        //ArrayList<Point> centri = new ArrayList<>();
 
         /*Create file for image*/
 
@@ -464,9 +467,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
-            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*1.8)
-                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*1.8)
-                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*1.8)) {
+            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*2)
+                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*2)
+                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*2)) {
 
                 marker[i/width][i%width]=true;
 
@@ -505,6 +508,69 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             }
 
         }
+
+        showToast(Integer.toString(centri.get(0).x)+"-"+Integer.toString(centri.get(0).y)+" "+Integer.toString(centri.get(1).x)+"-"+Integer.toString(centri.get(1).y));
+
+        for (int i=0;i<centri.size();i++){
+            for (int j=0;j<14;j++){
+
+                int c =j-(j/2);
+                Point temp_center = new Point(centri.get(i).x, centri.get(i).y);
+
+                int shifted_red_pixel=255;
+                int shifted_green_pixel=0;
+                int shifted_blue_pixel=0;
+
+                pixels_red[temp_center.y+c][temp_center.x]=shifted_red_pixel;
+                pixels_green[temp_center.y+c][temp_center.x]=shifted_green_pixel<<8;
+                pixels_blue[temp_center.y+c][temp_center.x]=shifted_blue_pixel<<16;
+
+                pixels_red[temp_center.y][temp_center.x+c]=shifted_red_pixel;
+                pixels_green[temp_center.y][temp_center.x+c]=shifted_green_pixel<<8;
+                pixels_blue[temp_center.y][temp_center.x+c]=shifted_blue_pixel<<16;
+
+                pixels_red[temp_center.y-c][temp_center.x]=shifted_red_pixel;
+                pixels_green[temp_center.y-c][temp_center.x]=shifted_green_pixel<<8;
+                pixels_blue[temp_center.y-c][temp_center.x]=shifted_blue_pixel<<16;
+
+                pixels_red[temp_center.y][temp_center.x-c]=shifted_red_pixel;
+                pixels_green[temp_center.y][temp_center.x-c]=shifted_green_pixel<<8;
+                pixels_blue[temp_center.y][temp_center.x-c]=shifted_blue_pixel<<16;
+
+
+
+            }
+        }
+
+
+
+        /*for (int k=0;k<((centri.size())-1);k++){
+            int contatore_temp=0;
+            for (int i=centri.get(k).x;i<centri.get(k+1).x;i++){
+
+                int y_diff = (centri.get(k).y-centri.get(k+1).y)/(centri.get(k+1).x-centri.get(k).x);
+                Point p = new Point(i ,centri.get(k).y+(y_diff*contatore_temp));
+
+                //Point p = centri.get(k);
+
+                    int shifted_red_pixel=255;
+                    int shifted_green_pixel=255;
+                    int shifted_blue_pixel=255;
+
+                    pixels_red[p.y][p.x]=shifted_red_pixel;
+                    pixels_green[p.y][p.x]=shifted_green_pixel<<8;
+                    pixels_blue[p.y][p.x]=shifted_blue_pixel<<16;
+
+
+
+
+                contatore_temp++;
+            }
+
+
+
+
+        }*/
 
 
 
@@ -595,20 +661,81 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private ArrayList find_center(boolean[][] marker, int width, int height) {
 
+        centri.clear();
+
         ArrayList<Point> centers = new ArrayList<>();
         ArrayList<Point> marked = new ArrayList<>();
 
-        //showToast(Integer.toString(width)+"   "+Integer.toString(height));
+        int contatore_temp=0;
+        boolean area = false;
+        ArrayList<Integer> inizio_area = new ArrayList<>();
+        ArrayList<Integer> fine_area = new ArrayList<>();
 
+        /*with this we find different areas*/
+        for (int i=0;i<width;i++){
+            for (int j=0;j<height;j++){
+                if (marker[j][i]==true)
+                    contatore_temp++;
+            }
 
-        for (int i=0;i<width*height;i++) {
-            marker_global[i/width][i%width]=marker[i/width][i%width];
+            if (contatore_temp>20 && area==false){
+                inizio_area.add(i);
+                area=true;
+               // showToast(Integer.toString(i));
+
+            }else if(contatore_temp<=20 && area==true ){
+
+                fine_area.add(i);
+                area=false;
+
+            }
+            contatore_temp=0;
+
+        }
+
+        //showToast(Integer.toString(zone.size()));
+
+        //showToast(Integer.toString(inizio_area.get(0))+" "+Integer.toString(fine_area.get(0))+" "+Integer.toString(inizio_area.get(1))+" "+
+          //      Integer.toString(fine_area.get(1))+" "+Integer.toString(inizio_area.get(2))+" "+Integer.toString(fine_area.get(2)));
+        for (int i=0;i<inizio_area.size();i++){
+            int sum_x=0;
+            int sum_y=0;
+            int elem=0;
+
+            for (int j=inizio_area.get(i);j<fine_area.get(i);j++) {
+                for (int k = 0; k < height; k++) {
+                    if (marker[k][j]==true){
+                        sum_x=sum_x+j;
+                        sum_y=sum_y+k;
+                        elem++;
+                    }
+                }
+            }
+            sum_x=sum_x/elem;
+            sum_y=sum_y/elem;
+            //showToast(Integer.toString(sum_x)+" "+Integer.toString(sum_y));
+            Point centro = new Point(sum_x,sum_y);
+            centers.add(centro);
+
+        }
+
+        for (int i=0;i<centers.size();i++){
+            centri.add(centers.get(i));
         }
 
 
-        marked = find_true(marker, width, height);
+        //showToast(Integer.toString(width)+"   "+Integer.toString(height));
 
-        showToast(Integer.toString(marked.size()));
+/*
+        for (int i=0;i<width*height;i++) {
+            marker_global[i/width][i%width]=marker[i/width][i%width];
+        }
+*/
+
+
+        //marked = find_true(marker, width, height);
+
+        //showToast(Integer.toString(marked.size()));
 
 
 
@@ -619,6 +746,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
     }
+
 
 
     private ArrayList<Point> find_true(boolean[][] marker, int width, int height) {
