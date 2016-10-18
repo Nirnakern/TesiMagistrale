@@ -44,12 +44,23 @@ import java.io.OutputStream;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import dji.common.error.DJIError;
+import dji.common.flightcontroller.DJIFlightControllerDataType;
+import dji.common.flightcontroller.DJIVirtualStickFlightControlData;
+import dji.common.flightcontroller.DJIVirtualStickVerticalControlMode;
 import dji.common.product.Model;
+import dji.common.util.DJICommonCallbacks;
 import dji.sdk.airlink.DJILBAirLink;
 import dji.sdk.camera.DJICamera;
 import dji.sdk.codec.DJICodecManager;
 import dji.sdk.base.DJIBaseProduct;
+import dji.sdk.flightcontroller.DJIFlightController;
+import dji.sdk.products.DJIAircraft;
+
+import static com.dji.videostreamdecodingsample.VideoDecodingApplication.getProductInstance;
 
 
 public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuvDataListener {
@@ -105,17 +116,38 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     /*clasterizzazione*/
-    boolean[][] marker_global =  new boolean[SizeH] [SizeW];
-    ArrayList<Point> global_marked = new ArrayList<>();
+
     ArrayList<Point> centri = new ArrayList<>();
 
-    int gruppi=0;
+    /*drone automatic fly*/
+
+    private DJIFlightController mFlightController;
+
+
+    private Timer mSendVirtualStickDataTimer;
+    private SendVirtualStickDataTask mSendVirtualStickDataTask;
+    private float mPitch;
+    private float mRoll;
+    private float mYaw;
+    private float mThrottle;
 
     /*cose per la conversione in RGB*/
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
     private Type.Builder yuvType, rgbaType;
     private Allocation in, out;
+
+    public MainActivity() {
+    }
+
+    public static DJIAircraft getAircraftInstance() {
+        if (!isAircraftConnected()) return null;
+        return (DJIAircraft) getProductInstance();
+    }
+
+    public static boolean isAircraftConnected() {
+        return getProductInstance() != null && getProductInstance() instanceof DJIAircraft;
+    }
 
 
     @Override
@@ -165,6 +197,90 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         initUi();
         initPreviewer();
+        initFlightController();
+
+        //start_drone();
+        enable_virtual_control();
+
+        float yaw =0.8f;
+        float throttle = 0.5f;
+        float pitch =0.0f;
+        float roll = 0.0f;
+
+        move_drone(yaw,throttle,pitch,roll);
+
+
+
+
+
+
+
+
+//        move_drone(0.5f, 0.5f ,0.5f, 0.5f);
+    }
+
+    private void move_drone(float yaw, float throttle, float pitch, float roll){
+
+        float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
+        float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
+        float verticalJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickVerticalControlMaxVelocity;
+        float yawJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickYawControlMaxAngularVelocity;
+
+        mYaw = (float)(verticalJoyStickControlMaxSpeed * yaw);
+        mThrottle = (float)(yawJoyStickControlMaxSpeed * throttle);
+
+        mPitch = (float)(pitchJoyControlMaxSpeed * pitch);
+
+        mRoll = (float)(rollJoyControlMaxSpeed * roll);
+
+
+        if (null == mSendVirtualStickDataTimer) {
+            mSendVirtualStickDataTask = new SendVirtualStickDataTask();
+            mSendVirtualStickDataTimer = new Timer();
+            mSendVirtualStickDataTimer.schedule(mSendVirtualStickDataTask, 0, 200);
+        }
+    }
+
+    private void start_drone() {
+
+
+        if (mFlightController != null){
+            mFlightController.takeOff(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("Take off Success");
+                            }
+                        }
+                    }
+            );
+
+
+        }
+
+    }
+
+    public  void enable_virtual_control(){
+
+        if (mFlightController != null) {
+            mFlightController.enableVirtualStickControlMode(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                showToast(djiError.getDescription());
+                            } else {
+                                showToast("Enable Virtual Stick Success");
+                            }
+                        }
+                    }
+            );
+        }
+
+
     }
 
     public Handler mainHandler = new Handler(Looper.getMainLooper()) {
@@ -235,7 +351,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private void notifyStatusChange() {
 
-        mProduct = VideoDecodingApplication.getProductInstance();
+        mProduct = getProductInstance();
 
         Log.d(TAG, "notifyStatusChange: " + (mProduct == null ? "Disconnect" : (mProduct.getModel() == null ? "null model" : mProduct.getModel().name())));
         if (mProduct != null && mProduct.isConnected() && mProduct.getModel() != null) {
@@ -544,37 +660,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        /*for (int k=0;k<((centri.size())-1);k++){
-            int contatore_temp=0;
-            for (int i=centri.get(k).x;i<centri.get(k+1).x;i++){
-
-                int y_diff = (centri.get(k).y-centri.get(k+1).y)/(centri.get(k+1).x-centri.get(k).x);
-                Point p = new Point(i ,centri.get(k).y+(y_diff*contatore_temp));
-
-                //Point p = centri.get(k);
-
-                    int shifted_red_pixel=255;
-                    int shifted_green_pixel=255;
-                    int shifted_blue_pixel=255;
-
-                    pixels_red[p.y][p.x]=shifted_red_pixel;
-                    pixels_green[p.y][p.x]=shifted_green_pixel<<8;
-                    pixels_blue[p.y][p.x]=shifted_blue_pixel<<16;
-
-
-
-
-                contatore_temp++;
-            }
-
-
-
-
-        }*/
-
-
-
-
 
 
         /*from here code to show image taken*/
@@ -724,19 +809,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
 
-        //showToast(Integer.toString(width)+"   "+Integer.toString(height));
-
-/*
-        for (int i=0;i<width*height;i++) {
-            marker_global[i/width][i%width]=marker[i/width][i%width];
-        }
-*/
-
-
-        //marked = find_true(marker, width, height);
-
-        //showToast(Integer.toString(marked.size()));
-
 
 
 
@@ -746,27 +818,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
     }
-
-
-
-    private ArrayList<Point> find_true(boolean[][] marker, int width, int height) {
-
-        ArrayList<Point> marked = new ArrayList<>();
-
-        for (int i=0;i<width*height;) {
-            if (marker[i/width][i%width]==true){
-                Point p = new Point(i%width,i/width);
-                marked.add(p);
-            }
-
-            i=i+15;
-
-        }
-
-
-     return marked;
-    }
-
 
     public void onClick(View v) {
         if (screenShot.isSelected()) {
@@ -839,6 +890,38 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //showToast(Integer.toString(x_touch)+"  "+Integer.toString(y_touch)+" "+Integer.toString(loc[0])+" "+Integer.toString(loc[1])+" "+Integer.toString(size.x)+Integer.toString(size.y));
 
         return false;
+    }
+
+
+    private void initFlightController() {
+        DJIAircraft aircraft = MainActivity.getAircraftInstance();
+        if (aircraft == null || !aircraft.isConnected()) {
+            showToast("Disconnected");
+            mFlightController = null;
+            return;
+        } else {
+            mFlightController = aircraft.getFlightController();
+        }
+    }
+
+    class SendVirtualStickDataTask extends TimerTask {
+
+        @Override
+        public void run() {
+
+            if (mFlightController != null) {
+                mFlightController.sendVirtualStickFlightControlData(
+                        new DJIVirtualStickFlightControlData(
+                                mPitch, mRoll, mYaw, mThrottle
+                        ), new DJICommonCallbacks.DJICompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+
+                            }
+                        }
+                );
+            }
+        }
     }
 
 }
