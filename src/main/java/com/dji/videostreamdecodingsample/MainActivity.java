@@ -205,7 +205,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         initUi();
         initPreviewer();
-        //initFlightController();
+        initFlightController();
 
         //start_drone();
         //enable_virtual_control();
@@ -215,7 +215,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         float pitch =0.0f;
         float roll = 0.0f;
 
-        //move_drone(yaw,throttle,pitch,roll);
+        move_drone(yaw,throttle,pitch,roll,1000);
 
 
 
@@ -227,7 +227,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 //        move_drone(0.5f, 0.5f ,0.5f, 0.5f);
     }
 
-    private void move_drone(float yaw, float throttle, float pitch, float roll){
+    private void move_drone(float yaw, float throttle, float pitch, float roll, int dur){
+
+        enable_virtual_control();
 
         float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
         float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
@@ -246,6 +248,32 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             mSendVirtualStickDataTask = new SendVirtualStickDataTask();
             mSendVirtualStickDataTimer = new Timer();
             mSendVirtualStickDataTimer.schedule(mSendVirtualStickDataTask, 0, 200);
+        }
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                disable_virtual_control();
+            }
+        }, dur);
+
+
+    }
+
+    private void disable_virtual_control(){
+        if (mFlightController != null){
+            mFlightController.disableVirtualStickControlMode(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                showToast(djiError.getDescription());
+                            } else {
+                                //showToast("Disable Virtual Stick Success");
+                            }
+                        }
+                    }
+            );
         }
     }
 
@@ -281,7 +309,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                             if (djiError != null) {
                                 showToast(djiError.getDescription());
                             } else {
-                                showToast("Enable Virtual Stick Success");
+                                //showToast("Enable Virtual Stick Success");
                             }
                         }
                     }
