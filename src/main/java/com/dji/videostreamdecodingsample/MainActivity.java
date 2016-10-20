@@ -41,6 +41,8 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +76,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private SurfaceHolder videostreamPreviewSh;
 
     private ImageView show_image;
+    String log_name=null;
 
 
 
@@ -114,6 +117,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int touched_G=0;
     int touched_B=0;
     boolean flag=false;
+
+    /*range colori accettabili*/
+    double delta_min =0.6;
+    double delta_max = 1.9;
 
     /*clasterizzazione*/
 
@@ -173,6 +180,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        log_name= String.valueOf(System.currentTimeMillis());
         // When the compile and target version is higher than 22, please request the
         // following permissions at runtime to ensure the
         // SDK work well.
@@ -197,17 +205,17 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         initUi();
         initPreviewer();
-        initFlightController();
+        //initFlightController();
 
         //start_drone();
-        enable_virtual_control();
+        //enable_virtual_control();
 
         float yaw =0.8f;
         float throttle = 0.5f;
         float pitch =0.0f;
         float roll = 0.0f;
 
-        move_drone(yaw,throttle,pitch,roll);
+        //move_drone(yaw,throttle,pitch,roll);
 
 
 
@@ -429,7 +437,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 180 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) { /*famo la cosa ogni 30 frame*/
 
             /*qui mi creo degli array, nulla di che*/
             byte[] y = new byte[width * height];
@@ -583,9 +591,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
 
-            if ((shifted_red_pixel>=touched_R*0.5 && shifted_red_pixel<=touched_R*2)
-                    && (shifted_green_pixel>=touched_G*0.5 && shifted_green_pixel<=touched_G*2)
-                    && (shifted_blue_pixel>=touched_B*0.5 && shifted_blue_pixel<=touched_B*2)) {
+            if ((shifted_red_pixel>=touched_R*delta_min && shifted_red_pixel<=touched_R*delta_max)
+                    && (shifted_green_pixel>=touched_G*delta_min && shifted_green_pixel<=touched_G*delta_max)
+                    && (shifted_blue_pixel>=touched_B*delta_min && shifted_blue_pixel<=touched_B*delta_max)) {
 
                 marker[i/width][i%width]=true;
 
@@ -625,7 +633,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         }
 
-        showToast(Integer.toString(centri.get(0).x)+"-"+Integer.toString(centri.get(0).y)+" "+Integer.toString(centri.get(1).x)+"-"+Integer.toString(centri.get(1).y));
+        //showToast(Integer.toString(centri.get(0).x)+"-"+Integer.toString(centri.get(0).y)+" "+Integer.toString(centri.get(1).x)+"-"+Integer.toString(centri.get(1).y));
 
         for (int i=0;i<centri.size();i++){
             for (int j=0;j<14;j++){
@@ -745,6 +753,165 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     private ArrayList find_center(boolean[][] marker, int width, int height) {
+
+        int colon_elem;
+        int delta=250; //spazio di incremento di dimensione della palla
+
+
+        ArrayList<marker> active_marker = new ArrayList<>(); //marker trovati ma non ancora completi
+        ArrayList<marker> completed_marker = new ArrayList<>(); // marker completi
+
+        centri.clear();
+        writeToFile("trovo centri",log_name);
+
+        for (int i=0;i<width-1;i=i+2){ //per ogni colonna
+            colon_elem=1;
+            /*for (int j=0;j<height;j++){  //per ogni elemento della colonna
+                if (marker[j][i]==true){ //controllo se nella colonna ci sono true
+                    colon_elem++;
+                }
+
+            }*/
+            //writeToFile("colon_elem="+String.valueOf(colon_elem),log_name);
+
+            if (colon_elem>0){ // se nella colonna ci sono dei true, devo iniziare ad analizzarla, altrimenti non faccio nulla
+
+                for (int j=0;j<height;j=j+2){
+                    //String posizione = "["+Integer.toString(j)+"]"+"["+Integer.toString(i)+"]"+":"+Boolean.toString(marker[j][i]);
+                    if (marker[j][i]==true){ //trovo un elemento posto a true
+                        if (active_marker.size()==0){ // non ho marker attivi, quindi creo un nuovo marker per il punto
+                            //writeToFile(posizione+": creo nuovo marker",log_name);
+                            marker mymarker = new marker();// creo nuovo marker
+
+                            mymarker.x_sum= mymarker.x_sum+i;
+                            mymarker.y_sum= mymarker.y_sum+j;
+                            mymarker.num_sum = mymarker.num_sum+1;
+
+                            mymarker.min=j; //imposto minimo (per ogni ciclo elemento, tanto mi sposto in basso)
+                            if (mymarker.max_set==false) { //controllo se non ho già impostato come massimo il pixel sopra
+                                mymarker.max = j;     //imposto massimo
+                                mymarker.max_set=true;
+                            }
+
+                            mymarker.active_this_column=true;
+
+                            active_marker.add(mymarker);
+
+
+                        }else { //ho almeno un marker gia attivo
+                            //writeToFile(posizione+ ": ho un marker attivo",log_name);
+                            int marker_index=-1;
+                            for (int k=0;k<active_marker.size();k++){ //ciclo sui marker attivi
+                                if (j>(active_marker.get(k).min-delta) && j< (active_marker.get(k).max+delta)){ //la pallina è nell'intorno di un marker attivo
+                                    marker_index=k; //mi salvo il marker
+                                    break;
+
+                                }
+
+
+                            }
+
+                            if(marker_index==-1){ //significa che il punto non era all'interno di nessun marker attivo
+                               // writeToFile(posizione+": il pto non era all'interno di un marker attivo",log_name);
+
+                                marker mymarker = new marker();// creo nuovo marker
+
+                                mymarker.x_sum= mymarker.x_sum+i;
+                                mymarker.y_sum= mymarker.y_sum+j;
+                                mymarker.num_sum = mymarker.num_sum+1;
+
+                                mymarker.min=j; //imposto minimo (per ogni ciclo elemento, tanto mi sposto in basso)
+                                if (mymarker.max_set==false) { //controllo se non ho già impostato come massimo il pixel sopra
+                                    mymarker.max = j;     //imposto massimo
+                                    mymarker.max_set=true;
+                                }
+                                mymarker.active_this_column=true;
+
+                                active_marker.add(mymarker);
+
+                            }else { // il punto era in un marker attivo
+                                //writeToFile(posizione+": aggiungo a marker attivo",log_name);
+
+                                active_marker.get(marker_index).x_sum=active_marker.get(marker_index).x_sum+i;
+                                active_marker.get(marker_index).y_sum=active_marker.get(marker_index).y_sum+j;
+                                active_marker.get(marker_index).num_sum=active_marker.get(marker_index).num_sum+1;
+
+                                active_marker.get(marker_index).min=j;
+                                if (active_marker.get(marker_index).max_set==false){
+                                    active_marker.get(marker_index).max=j;
+                                    active_marker.get(marker_index).max_set=true;
+                                }
+                                active_marker.get(marker_index).active_this_column=true;
+
+
+                            }
+
+
+                        }
+
+
+
+                    }
+                }
+
+
+
+                //a questo punto ho passato tutta la colonna creando e aggiornando
+
+                int elements = active_marker.size();
+
+                ArrayList<Integer> to_be_removed = new ArrayList<>();
+                for (int k=0;k<elements;k++){
+
+                    //come prima cosa controllo se dei marker sono diventati inattivi
+                    if(active_marker.get(k).active_this_column==false){//significa che questo turno non ho aggiunto nulla
+                        //writeToFile("rimuovo",log_name);
+                        completed_marker.add(active_marker.get(k)); //copio il marker in completed
+
+                        to_be_removed.add(k);
+
+
+                    }
+
+                    //poi resetto tutte quelle variabili di controllo sulla colonna
+                    active_marker.get(k).reset();
+
+                }
+
+                for (int k=0;k<to_be_removed.size();k++){
+                    //writeToFile("rimuovo:"+Integer.toString((to_be_removed.get(k)-k))+"dove gli attivi sono:"+Integer.toString(active_marker.size()),log_name);
+                    active_marker.remove(to_be_removed.get(k)-k);
+                }
+
+                to_be_removed.clear();
+
+
+            }
+            //writeToFile("colonna:"+Integer.toString(i),log_name);
+
+        }
+
+        //popolo centri
+        //showToast(Integer.toString(active_marker.size()));
+
+        writeToFile("Centri trovati:"+Integer.toString(completed_marker.size()),log_name);
+
+        for (int i=0;i<completed_marker.size();i++){
+
+            writeToFile("Centro:"+Integer.toString(completed_marker.get(i).compute_x())+"-:"+Integer.toString(completed_marker.get(i).compute_y()),log_name);
+
+            centri.add(new Point(completed_marker.get(i).compute_x(),completed_marker.get(i).compute_y()));
+
+        }
+
+
+
+
+
+     return centri;
+    }
+
+    private ArrayList find_center_old(boolean[][] marker, int width, int height) {
 
         centri.clear();
 
@@ -922,6 +1089,40 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 );
             }
         }
+    }
+
+    private void writeToFile(String content, String name){
+
+        // Find the root of the external storage.
+        // See http://developer.android.com/guide/topics/data/data-  storage.html#filesExternal
+
+        File root = android.os.Environment.getExternalStorageDirectory();
+
+
+        // See http://stackoverflow.com/questions/3551821/android-write-to-sd-card-folder
+
+        File dir = new File (root.getAbsolutePath() + "/DJI_log");
+        dir.mkdirs();
+        File file = new File(dir, name+"log.txt");
+
+        try {
+
+            FileOutputStream f = new FileOutputStream(file,true);
+            OutputStreamWriter OutDataWriter  = new OutputStreamWriter(f);
+            PrintWriter pw = new PrintWriter(f);
+            OutDataWriter.append(content);
+            OutDataWriter.append("\n");
+            OutDataWriter.flush();
+            OutDataWriter.close();
+            f.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            Log.i(TAG, "******* File not found. Did you" +
+                    " add a WRITE_EXTERNAL_STORAGE permission to the   manifest?");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
