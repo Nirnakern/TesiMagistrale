@@ -99,17 +99,17 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJICamera.CameraReceivedVideoDataCallback mReceivedVideoDataCallBack = null;
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
-    /*color*/
+    //color
     int blue = 0b000000000000000011111111;
     int green = 0b000000001111111100000000;
     int red = 0b111111110000000000000000;
     int alpha = 0b111111110000000000000000000000;
 
-    /*fixed dimension of image*/
+    //fixed dimension of image
     int SizeW =1280;
     int SizeH=720;
 
-    /*point of touch*/
+    //point of touch
     int x_touch=0;
     int y_touch=0;
 
@@ -118,15 +118,15 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int touched_B=0;
     boolean flag=false;
 
-    /*range colori accettabili*/
+    //range colori accettabili
     double delta_min =0.6;
     double delta_max = 1.9;
 
-    /*clasterizzazione*/
+    //clasterizzazione
 
     ArrayList<Point> centri = new ArrayList<>();
 
-    /*drone automatic fly*/
+    //drone automatic fly
 
     private DJIFlightController mFlightController;
 
@@ -138,7 +138,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private float mYaw;
     private float mThrottle;
 
-    /*cose per la conversione in RGB*/
+    //cose per la conversione in RGB
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
     private Type.Builder yuvType, rgbaType;
@@ -465,9 +465,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) { /*famo la cosa ogni 30 frame*/
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) { //famo la cosa ogni 30 frame
 
-            /*qui mi creo degli array, nulla di che*/
+            //qui mi creo degli array, nulla di che
             byte[] y = new byte[width * height];
             byte[] u = new byte[width * height / 4];
             byte[] v = new byte[width * height / 4];
@@ -475,18 +475,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             byte[] nv = new byte[width * height / 4];
 
 
-            /*copio yuv frame in y per w*h posti*/
+            //copio yuv frame in y per w*h posti
             System.arraycopy(yuvFrame, 0, y, 0, y.length);
 
 
-            /*copio u e v*/
+            //copio u e v
             for (int i = 0; i < u.length; i++) {
                 v[i] = yuvFrame[y.length + 2 * i];
                 u[i] = yuvFrame[y.length + 2 * i + 1];
             }
 
 
-            /* giusto variabili sensate  */
+            // giusto variabili sensate
             int uvWidth = width / 2;
             int uvHeight = height / 2;
 
@@ -523,9 +523,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private synchronized void findRGB(byte[] bytes , String shotDir) {
 
-        //ArrayList<Point> centri = new ArrayList<>();
 
-        /*Create file for image*/
+
+        //Create file for image
 
         File dir = new File(shotDir);
         if (!dir.exists() || !dir.isDirectory()) {
@@ -540,7 +540,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             return;
         }
 
-        /*convert YUV to ARGB*/
+        //convert YUV to ARGB
         rs = RenderScript.create(this);
         yuvToRgbIntrinsic = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs));
 
@@ -561,7 +561,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         final Bitmap bmpout = Bitmap.createBitmap(SizeW, SizeH, Bitmap.Config.ARGB_8888);
         out.copyTo(bmpout);
 
-        /*copy bitmap in array*/
+        //copy bitmap in array
         int width = bmpout.getWidth();
         int height = bmpout.getHeight();
 
@@ -599,8 +599,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
 
-        /*get color of touched pixel in 0-255*/
-        /*Inverted becouse flipped screen*/
+        //get color of touched pixel in 0-255
+        //Inverted becouse flipped screen
         if (flag==false) {
             touched_R = pixels_red[y_touch][x_touch];
             touched_G = (pixels_green[y_touch][x_touch]) >> 8;
@@ -698,7 +698,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        /*from here code to show image taken*/
+        //from here code to show image taken
 
         //recreate array RGB from components matrix
         for (int i=0;i<width*height;i++) {
@@ -728,7 +728,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        /*convert RGB bitmap to jpeg and write to file*/
+        //convert RGB bitmap to jpeg and write to file
 
 
         bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
@@ -951,7 +951,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         ArrayList<Integer> inizio_area = new ArrayList<>();
         ArrayList<Integer> fine_area = new ArrayList<>();
 
-        /*with this we find different areas*/
+        //with this we find different areas
         for (int i=0;i<width;i++){
             for (int j=0;j<height;j++){
                 if (marker[j][i]==true)
