@@ -35,6 +35,8 @@ import android.widget.Toast;
 
 import com.dji.videostreamdecodingsample.media.DJIVideoStreamDecoder;
 
+import org.apache.commons.math3.stat.regression.SimpleRegression;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -50,8 +52,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import dji.common.error.DJIError;
+import dji.common.flightcontroller.DJIAttitude;
 import dji.common.flightcontroller.DJIFlightControllerDataType;
 import dji.common.flightcontroller.DJIVirtualStickFlightControlData;
+import dji.common.flightcontroller.DJIVirtualStickFlightCoordinateSystem;
+import dji.common.flightcontroller.DJIVirtualStickRollPitchControlMode;
 import dji.common.flightcontroller.DJIVirtualStickVerticalControlMode;
 import dji.common.product.Model;
 import dji.common.util.DJICommonCallbacks;
@@ -61,8 +66,11 @@ import dji.sdk.codec.DJICodecManager;
 import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.flightcontroller.DJIFlightController;
 import dji.sdk.products.DJIAircraft;
+import dji.thirdparty.retrofit2.http.Body;
 
 import static com.dji.videostreamdecodingsample.VideoDecodingApplication.getProductInstance;
+import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.Angle;
+import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.AngularVelocity;
 
 
 public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuvDataListener {
@@ -125,6 +133,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     //clasterizzazione
 
     ArrayList<Point> centri = new ArrayList<>();
+
+    //range dimensioni
+
+    double delta_min_dim =0.25;
+    double delta_max_dim=4;
+
 
     //drone automatic fly
 
@@ -208,15 +222,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         initFlightController();
 
         //start_drone();
-        //enable_virtual_control();
+        enable_virtual_control();
 
-        float yaw =0.8f;
-        float throttle = 0.5f;
-        float pitch =0.0f;
-        float roll = 0.0f;
+        float yaw =1f; //
+        float throttle = 0.0f; //
+        float pitch =0.0f; //
+        float roll = 0.0f; //
 
-        move_drone(yaw,throttle,pitch,roll,1000);
+        move_drone(yaw,throttle,pitch,roll,2000);
 
+        move_drone(0f,1f,0f,0f,2000);
+        move_drone(0f,0f,1f,0f,2000);
+        move_drone(0f,0f,0f,1f,2000);
 
 
 
@@ -227,7 +244,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 //        move_drone(0.5f, 0.5f ,0.5f, 0.5f);
     }
 
-    private void move_drone(float yaw, float throttle, float pitch, float roll, int dur){
+
+
+    private synchronized void  move_drone(float yaw, float throttle, float pitch, float roll, int dur){
 
         enable_virtual_control();
 
@@ -239,9 +258,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         mYaw = (float)(verticalJoyStickControlMaxSpeed * yaw);
         mThrottle = (float)(yawJoyStickControlMaxSpeed * throttle);
 
-        mPitch = (float)(pitchJoyControlMaxSpeed * pitch);
+        mPitch =(float)(pitchJoyControlMaxSpeed * pitch);
 
         mRoll = (float)(rollJoyControlMaxSpeed * roll);
+
+
 
 
         if (null == mSendVirtualStickDataTimer) {
@@ -314,6 +335,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                         }
                     }
             );
+            mFlightController.setVirtualStickAdvancedModeEnabled(true);
+            mFlightController.setYawControlMode(AngularVelocity);
+            mFlightController.setRollPitchControlMode(DJIVirtualStickRollPitchControlMode.Velocity);
+            mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
+            mFlightController.setVerticalControlMode(DJIVirtualStickVerticalControlMode.Velocity);
         }
 
 
@@ -465,7 +491,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) { //famo la cosa ogni 30 frame
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { //famo la cosa ogni 30 frame
 
             //qui mi creo degli array, nulla di che
             byte[] y = new byte[width * height];
@@ -693,9 +719,43 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             }
         }
+        //vediamo di unire i punti
+/*
+        if (centri.size()>2) {
+
+
+            writeToFile("trovati:"+Integer.toString(centri.size())+"centri",log_name);
+
+
+            for (int i = 0; i < centri.size()-1; i++) {
+                SimpleRegression regression = new SimpleRegression();
+                regression.addData(centri.get(i).x, centri.get(i+1).y);
+
+                for (int j = centri.get(i).x;j<((centri.get(i+1)).x-1);j=j+2){
+                    int predicted_y = (int) regression.predict(i);
+
+                    //writeToFile("x:"+Integer.toString(i)+" y predetto:"+Integer.toString(predicted_y),log_name);
+
+                    int shifted_red_pixel=0;
+                    int shifted_green_pixel=0;
+                    int shifted_blue_pixel=255;
+
+                    pixels_red[predicted_y][i]=shifted_red_pixel;
+                    pixels_green[predicted_y][i]=shifted_green_pixel<<8;
+                    pixels_blue[predicted_y][i]=shifted_blue_pixel<<16;
+                    pixels_red[predicted_y][i+1]=shifted_red_pixel;
+                    pixels_green[predicted_y][i+1]=shifted_green_pixel<<8;
+                    pixels_blue[predicted_y][i+1]=shifted_blue_pixel<<16;
+                }
+
+            }
 
 
 
+
+        }
+
+*/
 
 
         //from here code to show image taken
@@ -783,7 +843,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private ArrayList find_center(boolean[][] marker, int width, int height) {
 
         int colon_elem;
-        int delta=250; //spazio di incremento di dimensione della palla
+        int delta=100; //spazio di incremento di dimensione della palla
 
 
         ArrayList<marker> active_marker = new ArrayList<>(); //marker trovati ma non ancora completi
@@ -922,21 +982,34 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //popolo centri
         //showToast(Integer.toString(active_marker.size()));
 
-        writeToFile("Centri trovati:"+Integer.toString(completed_marker.size()),log_name);
+        writeToFile("Centri trovati prima del controllo:"+Integer.toString(completed_marker.size()),log_name);
+
+        //controlliamo se tutti sono sensati
+
+        long dim_media=0;
+        for (int i=0;i<completed_marker.size();i++){
+            dim_media=dim_media+completed_marker.get(i).num_sum;
+        }
+
+        dim_media=dim_media/completed_marker.size();
 
         for (int i=0;i<completed_marker.size();i++){
 
-            writeToFile("Centro:"+Integer.toString(completed_marker.get(i).compute_x())+"-:"+Integer.toString(completed_marker.get(i).compute_y()),log_name);
+            if (completed_marker.get(i).num_sum>dim_media*delta_min_dim && completed_marker.get(i).num_sum<dim_media*delta_max_dim) {
+                writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
 
-            centri.add(new Point(completed_marker.get(i).compute_x(),completed_marker.get(i).compute_y()));
+                centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
 
+            }
         }
+        writeToFile("Centri trovati dopo il controllo:"+Integer.toString(centri.size()),log_name);
 
 
 
 
 
-     return centri;
+
+        return centri;
     }
 
     private ArrayList find_center_old(boolean[][] marker, int width, int height) {
@@ -1105,7 +1178,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         public void run() {
 
             if (mFlightController != null) {
+
+
                 mFlightController.sendVirtualStickFlightControlData(
+
                         new DJIVirtualStickFlightControlData(
                                 mPitch, mRoll, mYaw, mThrottle
                         ), new DJICommonCallbacks.DJICompletionCallback() {
@@ -1118,6 +1194,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             }
         }
     }
+
+
 
     private void writeToFile(String content, String name){
 
