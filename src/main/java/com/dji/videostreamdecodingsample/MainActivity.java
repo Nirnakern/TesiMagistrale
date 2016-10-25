@@ -2,20 +2,17 @@ package com.dji.videostreamdecodingsample;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.ImageFormat;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
-import android.graphics.YuvImage;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.os.Bundle;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
@@ -35,12 +32,9 @@ import android.widget.Toast;
 
 import com.dji.videostreamdecodingsample.media.DJIVideoStreamDecoder;
 
-import org.apache.commons.math3.stat.regression.SimpleRegression;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -51,8 +45,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+
+import dji.common.camera.DJICameraSettingsDef;
 import dji.common.error.DJIError;
-import dji.common.flightcontroller.DJIAttitude;
 import dji.common.flightcontroller.DJIFlightControllerDataType;
 import dji.common.flightcontroller.DJIVirtualStickFlightControlData;
 import dji.common.flightcontroller.DJIVirtualStickFlightCoordinateSystem;
@@ -61,15 +56,13 @@ import dji.common.flightcontroller.DJIVirtualStickVerticalControlMode;
 import dji.common.product.Model;
 import dji.common.util.DJICommonCallbacks;
 import dji.sdk.airlink.DJILBAirLink;
+import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.camera.DJICamera;
 import dji.sdk.codec.DJICodecManager;
-import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.flightcontroller.DJIFlightController;
 import dji.sdk.products.DJIAircraft;
-import dji.thirdparty.retrofit2.http.Body;
 
 import static com.dji.videostreamdecodingsample.VideoDecodingApplication.getProductInstance;
-import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.Angle;
 import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.AngularVelocity;
 
 
@@ -98,7 +91,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private DJICodecManager mCodecManager;
 
     private TextView savePath;
-    private TextView screenShot;
+    private TextView findMarker;
+    private TextView startMoving;
     private List<String> pathList = new ArrayList<>();
 
     private HandlerThread backgroundHandlerThread;
@@ -112,6 +106,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int green = 0b000000001111111100000000;
     int red = 0b111111110000000000000000;
     int alpha = 0b111111110000000000000000000000;
+
+    //bottoni
+    int button =0;
+    boolean flag_find=false;
 
     //fixed dimension of image
     int SizeW =1280;
@@ -127,12 +125,13 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     //range colori accettabili
-    double delta_min =0.6;
-    double delta_max = 1.9;
+    double delta_min =0.5;
+    double delta_max = 1.8;
 
     //clasterizzazione
 
     ArrayList<Point> centri = new ArrayList<>();
+    ArrayList<Point> centri_old = new ArrayList<>();
 
     //range dimensioni
 
@@ -186,8 +185,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     @Override
     protected void onDestroy() {
-        DJIVideoStreamDecoder.getInstance().destroy();
         super.onDestroy();
+        DJIVideoStreamDecoder.getInstance().destroy();
+
+
     }
 
     @Override
@@ -222,18 +223,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         initFlightController();
 
         //start_drone();
-        enable_virtual_control();
+        //enable_virtual_control();
 
         float yaw =1f; //
         float throttle = 0.0f; //
         float pitch =0.0f; //
         float roll = 0.0f; //
 
-        move_drone(yaw,throttle,pitch,roll,2000);
+       // move_drone(yaw,throttle,pitch,roll,2000);
 
-        move_drone(0f,1f,0f,0f,2000);
-        move_drone(0f,0f,1f,0f,2000);
-        move_drone(0f,0f,0f,1f,2000);
+        //move_drone(0f,1f,0f,0f,2000);
+        //move_drone(0f,0f,1f,0f,2000);
+        //move_drone(0f,0f,0f,1f,2000);
 
 
 
@@ -383,8 +384,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         savePath = (TextView) findViewById(R.id.activity_main_save_path);
-        screenShot = (TextView) findViewById(R.id.activity_main_screen_shot);
-        screenShot.setSelected(false);
+        findMarker = (TextView) findViewById(R.id.activity_main_find_marker);
+        findMarker.setSelected(false);
+        startMoving = (TextView) findViewById(R.id.activity_main_start_moving);
+        startMoving.setSelected(false);
         titleTv = (TextView) findViewById(R.id.title_tv);
         videostreamPreviewTtView = (TextureView) findViewById(R.id.livestream_preview_ttv);
         videostreamPreviewSf = (SurfaceView) findViewById(R.id.livestream_preview_sf);
@@ -491,7 +494,14 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 60 == 0) { //famo la cosa ogni 30 frame
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 && (button==2 || (button ==1 && flag_find==false))) { //famo la cosa ogni 30 frame
+
+            writeToFile("chiedo di fare foto su SD",log_name);
+            shootSD();
+
+            writeToFile("scrivo su file, button = "+Integer.toString(button),log_name);
+            if (button==1)
+                flag_find=true;
 
             //qui mi creo degli array, nulla di che
             byte[] y = new byte[width * height];
@@ -547,7 +557,31 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
     }
 
-    private synchronized void findRGB(byte[] bytes , String shotDir) {
+    private void shootSD() {
+        DJICameraSettingsDef.CameraMode cameraMode = DJICameraSettingsDef.CameraMode.ShootPhoto;
+        DJICamera camera = mProduct.getCamera();
+        if (camera != null) {
+            writeToFile("salvo foto",log_name);
+            DJICameraSettingsDef.CameraShootPhotoMode photoMode = DJICameraSettingsDef.CameraShootPhotoMode.Single; // Set the camera capture mode as Single mode
+            camera.startShootPhoto(photoMode, new DJICommonCallbacks.DJICompletionCallback() {
+                @Override
+                public void onResult(DJIError error) {
+                    if (error == null) {
+                        //showToast("take photo: success");
+                    } else {
+                        showToast(error.getDescription());
+                    }
+                }
+            }); // Execute the startShootPhoto API
+        }else {
+            writeToFile("foto non salvata",log_name);
+        }
+
+    }
+
+    private void findRGB(byte[] bytes , String shotDir) {
+
+        writeToFile("entro in findRGB",log_name);
 
 
 
@@ -568,6 +602,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         //convert YUV to ARGB
         rs = RenderScript.create(this);
+
         yuvToRgbIntrinsic = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs));
 
         if (yuvType == null)
@@ -580,6 +615,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
         in.copyFrom(bytes);
+
 
         yuvToRgbIntrinsic.setInput(in);
         yuvToRgbIntrinsic.forEach(out);
@@ -670,8 +706,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         marker= fillin (marker,width,height);
         marker= fillin (marker,width,height);
         marker= fillin (marker,width,height);
-        find_center(marker,width,height);
 
+        find_center(marker, width, height);
+
+
+        writeToFile("sono subito dopo aver trovato i centri",log_name);
         for (int i=0;i<width*height;i++){
 
             if (marker[i/width][i%width]==true){
@@ -687,7 +726,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         }
 
-        //showToast(Integer.toString(centri.get(0).x)+"-"+Integer.toString(centri.get(0).y)+" "+Integer.toString(centri.get(1).x)+"-"+Integer.toString(centri.get(1).y));
+        writeToFile("ho cambiato i colori in bianco ",log_name);
+
 
         for (int i=0;i<centri.size();i++){
             for (int j=0;j<14;j++){
@@ -719,43 +759,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             }
         }
-        //vediamo di unire i punti
-/*
-        if (centri.size()>2) {
 
-
-            writeToFile("trovati:"+Integer.toString(centri.size())+"centri",log_name);
-
-
-            for (int i = 0; i < centri.size()-1; i++) {
-                SimpleRegression regression = new SimpleRegression();
-                regression.addData(centri.get(i).x, centri.get(i+1).y);
-
-                for (int j = centri.get(i).x;j<((centri.get(i+1)).x-1);j=j+2){
-                    int predicted_y = (int) regression.predict(i);
-
-                    //writeToFile("x:"+Integer.toString(i)+" y predetto:"+Integer.toString(predicted_y),log_name);
-
-                    int shifted_red_pixel=0;
-                    int shifted_green_pixel=0;
-                    int shifted_blue_pixel=255;
-
-                    pixels_red[predicted_y][i]=shifted_red_pixel;
-                    pixels_green[predicted_y][i]=shifted_green_pixel<<8;
-                    pixels_blue[predicted_y][i]=shifted_blue_pixel<<16;
-                    pixels_red[predicted_y][i+1]=shifted_red_pixel;
-                    pixels_green[predicted_y][i+1]=shifted_green_pixel<<8;
-                    pixels_blue[predicted_y][i+1]=shifted_blue_pixel<<16;
-                }
-
-            }
-
-
-
-
-        }
-
-*/
+        writeToFile("arrivo a dover mostrare img",log_name);
 
 
         //from here code to show image taken
@@ -764,10 +769,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         for (int i=0;i<width*height;i++) {
             pixels_l[i] = pixels_blue[i/width][i%width] + pixels_green[i/width][i%width] + pixels_red[i/width][i%width]+pixels_alpha[i/width][i%width];
 
-               /* if (marker[i/width][i%width]==true){
-                    pixels_l[i]=pixels_l[i];
-
-                }*/
 
 
         }
@@ -791,24 +792,265 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //convert RGB bitmap to jpeg and write to file
 
 
-        bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
+       /* bmpout2.compress(Bitmap.CompressFormat.JPEG, 50, outputFile);
         try {
             outputFile.close();
+
             bmpout.recycle();
             bmpout2.recycle();
            // showToast("Saved File");
 
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
 
 
 
         //clear
         yuvType = null;
-
+        rs.finish();
+        rs.destroy();
+        yuvToRgbIntrinsic.destroy();
+        in.destroy();
+        out.destroy();
 
     }
+
+    private void fast_find_center(boolean[][] marker, int width, int height) {
+        writeToFile( "trovo centri",log_name);
+        int raggio_pallina=150;
+
+        centri_old.clear();
+        for (int i=0; i<centri.size();i++){
+            centri_old.add(centri.get(i));
+        }
+        centri.clear();
+
+        int x_sum=0;
+        int y_sum=0;
+        int num_sum=0;
+        ArrayList<Point> centri_temp = new ArrayList<>();
+
+
+        writeToFile("inizio analisi di "+Integer.toString(centri_old.size())+"centri",log_name);
+
+        //      1   2   3
+        //      4   p   5
+        //      6   7   8
+
+        for (int j=0;j<centri_old.size();j++){
+            Point uno = new Point();
+            Point due = new Point();
+            Point tre = new Point();
+            Point quattro = new Point();
+            Point cinque = new Point();
+            Point sei = new Point();
+            Point sette = new Point();
+            Point otto = new Point();
+            Boolean[] flags = new Boolean[]{false,false,false,false};
+
+
+            Point p = centri_old.get(j);
+            int i=0;
+            while(true){
+
+
+                //due
+                if (marker[p.y+i][p.x]==true) {
+                    due.set(p.x, p.y + i);
+                    flags[0]=false;
+                }
+                else
+                    flags[0]=true;
+                //quattro
+                if (marker[p.y][p.x-i]==true) {
+                    quattro.set(p.x - i, p.y);
+                    flags[1]=false;
+                }
+                else
+                    flags[1]=true;
+
+                //cinque
+                if (marker[p.y][p.x+i]==true) {
+                    cinque.set(p.x + i, p.y);
+                    flags[2]=false;
+                }
+                else
+                    flags[2]=true;
+                //sette
+                if (marker[p.y-i][p.x]==true) {
+                    sette.set(p.x, p.y - i);
+                    flags[3]=false;
+                }
+                else
+                    flags[3]=true;
+
+                i++;
+                if ((flags[0]==true && flags[1]==true && flags[2]==true && flags[3]==true) || i>250 ){
+                    writeToFile("i="+Integer.toString(i),log_name);
+                    break;
+                }
+
+
+            }
+
+            int temp_x = (due.x+quattro.x+cinque.x+sette.x)/4;
+            int temp_y = (due.y+quattro.y+cinque.y+sette.y)/4;
+            centri_temp.add(new Point(temp_x,temp_y));
+
+
+        }
+
+
+
+        for (int j=0;j<centri_temp.size();j++){
+            Point uno = new Point();
+            Point due = new Point();
+            Point tre = new Point();
+            Point quattro = new Point();
+            Point cinque = new Point();
+            Point sei = new Point();
+            Point sette = new Point();
+            Point otto = new Point();
+            Boolean[] flags = new Boolean[]{false,false,false,false,false,false,false,false};
+
+
+            Point p = centri_temp.get(j);
+            int i=0;
+            while(true){
+
+                //uno
+                if (marker[p.y+i][p.x-i]==true) {
+                    uno.set(p.x - i, p.y + i);
+                    flags[0]=false;
+                }
+                else
+                    flags[0]=true;
+
+                //due
+                if (marker[p.y+i][p.x]==true) {
+                    due.set(p.x, p.y + i);
+                    flags[1]=false;
+                }
+                else
+                    flags[1]=true;
+
+                //tre
+                if (marker[p.y+i][p.x+i]==true) {
+                    tre.set(p.x + i, p.y + i);
+                    flags[2]=false;
+                }
+                else
+                    flags[2]=true;
+
+                //quattro
+                if (marker[p.y][p.x-i]==true) {
+                    quattro.set(p.x - i, p.y);
+                    flags[3]=false;
+                }
+                else
+                    flags[3]=true;
+
+                //cinque
+                if (marker[p.y][p.x+i]==true) {
+                    cinque.set(p.x + i, p.y);
+                    flags[4]=false;
+                }
+                else
+                    flags[4]=true;
+
+                //sei
+                if (marker[p.y-i][p.x-i]==true) {
+                    sei.set(p.x - i, p.y - i);
+                    flags[5]=false;
+                }
+                else
+                    flags[5]=true;
+
+                //sette
+                if (marker[p.y-i][p.x]==true) {
+                    sette.set(p.x, p.y - i);
+                    flags[6]=false;
+                }
+                else
+                    flags[6]=true;
+
+                //otto
+                if (marker[p.y-i][p.x+i]==true) {
+                    otto.set(p.x + i, p.y - i);
+                    flags[7]=false;
+                }
+                else
+                    flags[7]=true;
+
+
+                i++;
+                if ((flags[0]==true && flags[1]==true && flags[2]==true && flags[3]==true && flags[4]==true && flags[5]==true && flags[6]==true
+                        && flags[7]==true) || i>250 ) {
+                    writeToFile("i="+Integer.toString(i),log_name);
+                    break;
+                }
+            }
+
+            int temp_x = (uno.x+due.x+tre.x+quattro.x+cinque.x+sei.x+sette.x+otto.x)/8;
+            int temp_y = (uno.y+due.y+tre.y+quattro.y+cinque.y+sei.y+sette.y+otto.y)/8;
+            centri.add(new Point(temp_x,temp_y));
+
+
+        }
+
+
+
+
+        /*for (int i=0;i<centri_old.size();i++){
+
+            int y_min=0;
+            int y_max=718;
+
+            if(centri_old.get(i).y-raggio_pallina>0)
+                y_min=centri_old.get(i).y-raggio_pallina;
+            if(centri_old.get(i).y+raggio_pallina<720)
+                y_max=centri_old.get(i).y+raggio_pallina;
+
+            int x_min=0;
+            int x_max=1278;
+
+
+
+            if(centri_old.get(i).x-raggio_pallina>0)
+                x_min=centri_old.get(i).x-raggio_pallina;
+            if(centri_old.get(i).x+raggio_pallina<1280)
+                x_max=centri_old.get(i).x+raggio_pallina;
+
+            writeToFile("analisi spazio y:"+Integer.toString(y_min)+"-"+Integer.toString(y_max)+" x:"+
+                    Integer.toString(x_min)+"-"+Integer.toString(x_max),log_name);
+
+            for (int j=y_min;j<y_max;j++){
+                for (int k=x_min;k<x_max;k++) {
+
+                    //writeToFile("controllo"+Integer.toString(j)+"-"+Integer.toString(k)+"\n",log_name);
+                    if (marker[j][k]==true){
+                        x_sum=x_sum+k;
+                        y_sum=y_sum+j;
+                        num_sum=num_sum+1;
+                    }
+                }
+            }
+            if (num_sum>0){
+                writeToFile("aggiungo centro",log_name);
+                Point pto = new Point(x_sum/num_sum,y_sum/num_sum);
+                centri.add(pto);
+            }
+            x_sum=0;
+            y_sum=0;
+            num_sum=0;
+
+
+        }*/
+        writeToFile("numero di centri trovati velocemente:"+Integer.toString(centri.size()),log_name);
+    }
+
+
 
     private boolean[][] fillin(boolean[][] marker, int width, int height) {
 
@@ -843,7 +1085,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private ArrayList find_center(boolean[][] marker, int width, int height) {
 
         int colon_elem;
-        int delta=100; //spazio di incremento di dimensione della palla
+        int delta=200; //spazio di incremento di dimensione della palla
 
 
         ArrayList<marker> active_marker = new ArrayList<>(); //marker trovati ma non ancora completi
@@ -854,12 +1096,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         for (int i=0;i<width-1;i=i+2){ //per ogni colonna
             colon_elem=1;
-            /*for (int j=0;j<height;j++){  //per ogni elemento della colonna
-                if (marker[j][i]==true){ //controllo se nella colonna ci sono true
-                    colon_elem++;
-                }
 
-            }*/
             //writeToFile("colon_elem="+String.valueOf(colon_elem),log_name);
 
             if (colon_elem>0){ // se nella colonna ci sono dei true, devo iniziare ad analizzarla, altrimenti non faccio nulla
@@ -982,7 +1219,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //popolo centri
         //showToast(Integer.toString(active_marker.size()));
 
-        writeToFile("Centri trovati prima del controllo:"+Integer.toString(completed_marker.size()),log_name);
+        //writeToFile("Centri trovati prima del controllo:"+Integer.toString(completed_marker.size()),log_name);
 
         //controlliamo se tutti sono sensati
 
@@ -996,13 +1233,13 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         for (int i=0;i<completed_marker.size();i++){
 
             if (completed_marker.get(i).num_sum>dim_media*delta_min_dim && completed_marker.get(i).num_sum<dim_media*delta_max_dim) {
-                writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
+                //writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
 
                 centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
 
             }
         }
-        writeToFile("Centri trovati dopo il controllo:"+Integer.toString(centri.size()),log_name);
+        //writeToFile("Centri trovati dopo il controllo:"+Integer.toString(centri.size()),log_name);
 
 
 
@@ -1012,85 +1249,15 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         return centri;
     }
 
-    private ArrayList find_center_old(boolean[][] marker, int width, int height) {
 
-        centri.clear();
+    public void onClick_find(View v) {
+        button=1;
+        flag_find=false;
 
-        ArrayList<Point> centers = new ArrayList<>();
-        ArrayList<Point> marked = new ArrayList<>();
+        if (findMarker.isSelected()) {
 
-        int contatore_temp=0;
-        boolean area = false;
-        ArrayList<Integer> inizio_area = new ArrayList<>();
-        ArrayList<Integer> fine_area = new ArrayList<>();
-
-        //with this we find different areas
-        for (int i=0;i<width;i++){
-            for (int j=0;j<height;j++){
-                if (marker[j][i]==true)
-                    contatore_temp++;
-            }
-
-            if (contatore_temp>20 && area==false){
-                inizio_area.add(i);
-                area=true;
-               // showToast(Integer.toString(i));
-
-            }else if(contatore_temp<=20 && area==true ){
-
-                fine_area.add(i);
-                area=false;
-
-            }
-            contatore_temp=0;
-
-        }
-
-        //showToast(Integer.toString(zone.size()));
-
-        //showToast(Integer.toString(inizio_area.get(0))+" "+Integer.toString(fine_area.get(0))+" "+Integer.toString(inizio_area.get(1))+" "+
-          //      Integer.toString(fine_area.get(1))+" "+Integer.toString(inizio_area.get(2))+" "+Integer.toString(fine_area.get(2)));
-        for (int i=0;i<inizio_area.size();i++){
-            int sum_x=0;
-            int sum_y=0;
-            int elem=0;
-
-            for (int j=inizio_area.get(i);j<fine_area.get(i);j++) {
-                for (int k = 0; k < height; k++) {
-                    if (marker[k][j]==true){
-                        sum_x=sum_x+j;
-                        sum_y=sum_y+k;
-                        elem++;
-                    }
-                }
-            }
-            sum_x=sum_x/elem;
-            sum_y=sum_y/elem;
-            //showToast(Integer.toString(sum_x)+" "+Integer.toString(sum_y));
-            Point centro = new Point(sum_x,sum_y);
-            centers.add(centro);
-
-        }
-
-        for (int i=0;i<centers.size();i++){
-            centri.add(centers.get(i));
-        }
-
-
-
-
-
-
-
-        return centers;
-
-
-    }
-
-    public void onClick(View v) {
-        if (screenShot.isSelected()) {
-            screenShot.setText("Screen Shot");
-            screenShot.setSelected(false);
+            findMarker.setText("Find Marker");
+            findMarker.setSelected(false);
             DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
             savePath.setText("");
             savePath.setVisibility(View.INVISIBLE);
@@ -1098,8 +1265,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             videostreamPreviewTtView.setVisibility(View.VISIBLE);
             videostreamPreviewSf.setVisibility(View.VISIBLE);
         } else {
-            screenShot.setText("Live Stream");
-            screenShot.setSelected(true);
+            findMarker.setText("marker found");
+            findMarker.setSelected(true);
             DJIVideoStreamDecoder.getInstance().changeSurface(null);
             savePath.setText("");
             savePath.setVisibility(View.VISIBLE);
@@ -1108,6 +1275,21 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             videostreamPreviewSf.setVisibility(View.INVISIBLE);
 
             pathList.clear();
+
+        }
+    }
+
+    public void onClick_move(View v) {
+        button = 2;
+
+        if (startMoving.isSelected()) {
+            startMoving.setText("Start Moving");
+            startMoving.setSelected(false);
+        } else {
+            startMoving.setText("drone moving");
+            startMoving.setSelected(true);
+           // DJIVideoStreamDecoder.getInstance().changeSurface(null);
+
         }
     }
 
@@ -1230,5 +1412,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
     }
+
+
+
+
 
 }
