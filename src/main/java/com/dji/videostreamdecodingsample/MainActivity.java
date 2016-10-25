@@ -41,6 +41,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,6 +51,7 @@ import java.util.TimerTask;
 
 import dji.common.camera.DJICameraSettingsDef;
 import dji.common.error.DJIError;
+import dji.common.flightcontroller.DJIFlightControllerControlMode;
 import dji.common.flightcontroller.DJIFlightControllerDataType;
 import dji.common.flightcontroller.DJIVirtualStickFlightControlData;
 import dji.common.flightcontroller.DJIVirtualStickFlightCoordinateSystem;
@@ -63,6 +67,7 @@ import dji.sdk.flightcontroller.DJIFlightController;
 import dji.sdk.products.DJIAircraft;
 
 import static com.dji.videostreamdecodingsample.VideoDecodingApplication.getProductInstance;
+import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.Angle;
 import static dji.common.flightcontroller.DJIVirtualStickYawControlMode.AngularVelocity;
 
 
@@ -137,6 +142,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     double delta_min_dim =0.25;
     double delta_max_dim=4;
+
+    //blocchi
+
+    boolean moving= false;
+    boolean photo_taken = false;
 
 
     //drone automatic fly
@@ -225,12 +235,14 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //start_drone();
         //enable_virtual_control();
 
-        float yaw =1f; //
-        float throttle = 0.0f; //
-        float pitch =0.0f; //
-        float roll = 0.0f; //
+        mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
 
-       // move_drone(yaw,throttle,pitch,roll,2000);
+        float yaw =0.0f; // //0.07 al secondo (compreso tra -3 e +3)
+        float throttle = 0.0f; //
+        float pitch =01.0f; // sposto di lato
+        float roll = 00.0f; // 6m/s credo sposto dritto
+
+       //move_drone(yaw,throttle,pitch,roll,3000);
 
         //move_drone(0f,1f,0f,0f,2000);
         //move_drone(0f,0f,1f,0f,2000);
@@ -251,10 +263,14 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         enable_virtual_control();
 
-        float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
-        float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
+
+
+
+
+        float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxAngle;
+        float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxAngle;
         float verticalJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickVerticalControlMaxVelocity;
-        float yawJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickYawControlMaxAngularVelocity;
+        float yawJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickYawControlMaxAngle;
 
         mYaw = (float)(verticalJoyStickControlMaxSpeed * yaw);
         mThrottle = (float)(yawJoyStickControlMaxSpeed * throttle);
@@ -336,10 +352,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                         }
                     }
             );
-            mFlightController.setVirtualStickAdvancedModeEnabled(true);
-            mFlightController.setYawControlMode(AngularVelocity);
-            mFlightController.setRollPitchControlMode(DJIVirtualStickRollPitchControlMode.Velocity);
-            mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
+            //mFlightController.setVirtualStickAdvancedModeEnabled(true);
+            mFlightController.setYawControlMode(Angle);
+            mFlightController.setRollPitchControlMode(DJIVirtualStickRollPitchControlMode.Angle);
+
             mFlightController.setVerticalControlMode(DJIVirtualStickVerticalControlMode.Velocity);
         }
 
@@ -494,10 +510,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 && (button==2 || (button ==1 && flag_find==false))) { //famo la cosa ogni 30 frame
+        if (DJIVideoStreamDecoder.getInstance().frameIndex % 180 == 0 && (button==2 || (button ==1 && flag_find==false))) { //famo la cosa ogni 30 frame
 
-            writeToFile("chiedo di fare foto su SD",log_name);
-            shootSD();
+            //shootSD();
 
             writeToFile("scrivo su file, button = "+Integer.toString(button),log_name);
             if (button==1)
@@ -558,12 +573,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     private void shootSD() {
-        DJICameraSettingsDef.CameraMode cameraMode = DJICameraSettingsDef.CameraMode.ShootPhoto;
-        DJICamera camera = mProduct.getCamera();
-        if (camera != null) {
+
+        if (mCamera != null) {
+
             writeToFile("salvo foto",log_name);
             DJICameraSettingsDef.CameraShootPhotoMode photoMode = DJICameraSettingsDef.CameraShootPhotoMode.Single; // Set the camera capture mode as Single mode
-            camera.startShootPhoto(photoMode, new DJICommonCallbacks.DJICompletionCallback() {
+            mCamera.startShootPhoto(photoMode, new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
                     if (error == null) {
@@ -708,9 +723,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         marker= fillin (marker,width,height);
 
         find_center(marker, width, height);
-
-
         writeToFile("sono subito dopo aver trovato i centri",log_name);
+
+
+        drone_move();
+        writeToFile("ho mosso il drone",log_name);
+
         for (int i=0;i<width*height;i++){
 
             if (marker[i/width][i%width]==true){
@@ -813,6 +831,89 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         yuvToRgbIntrinsic.destroy();
         in.destroy();
         out.destroy();
+
+    }
+
+    private void drone_move() {
+
+        float peso_angolo_attuale;
+        float peso_angolo_secondo;
+        float peso_angolo_terzo;
+
+
+        ArrayList<Marker_percorso> local_centri = new ArrayList<>();
+        Point centro = new Point(640,0);
+
+        for (int i=0;i<centri.size();i++){
+            Marker_percorso mark = new Marker_percorso();
+            mark.coordinate.set(centri.get(i).x,(centri.get(i).y));
+            int distanza =(int) Math.sqrt(Math.pow((centro.x-mark.coordinate.x),2)+Math.pow((centro.y*3-mark.coordinate.y*3),2));
+            mark.distanza=distanza;
+            local_centri.add(mark);
+        }
+
+        writeToFile("Creato oggetti",log_name);
+
+        Collections.sort(local_centri, new Comparator<Marker_percorso>() {
+            @Override
+            public int compare(Marker_percorso o1, Marker_percorso o2) {
+                if (o1.distanza>o2.distanza)
+                    return o2.distanza;
+                else
+                    return o1.distanza;
+            }
+        });
+
+        writeToFile("Ordinato oggetti",log_name);
+
+        Double angolo_attuale = 0.000;
+        Double angolo_secondo=0.0;
+        Double angolo_terzo=0.0;
+        writeToFile("local_centri ha dimensione"+Integer.toString(local_centri.size()),log_name);
+        for (int i=0;i<local_centri.size();i++){
+
+            if (local_centri.size()>1 && i==0) {
+                //writeToFile("primo angolo",log_name);
+                //writeToFile( local_centri.get(i).tostring()+ "   "+ local_centri.get(i+1).tostring(),log_name);
+
+                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
+                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
+                //writeToFile("alpha:"+Double.toString(alpha),log_name);
+                angolo_attuale =(Math.atan(alpha));
+                //writeToFile("atan di alpha"+Double.toString(angolo_attuale),log_name);
+
+                angolo_attuale = Math.toDegrees(angolo_attuale);
+                writeToFile("in degrees"+Double.toString(angolo_attuale),log_name);
+                //showToast(Double.toString(angolo_attuale));
+
+            }
+            if (local_centri.size()>2 && i==1) {
+                writeToFile("secondo angolo",log_name);
+
+                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
+                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
+
+                angolo_secondo =Math.toDegrees(Math.atan(alpha));
+                writeToFile("in degrees"+Double.toString(angolo_secondo),log_name);
+            }
+            if (local_centri.size()>3 && i==2) {
+                writeToFile("terzo angolo",log_name);
+
+                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
+                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
+
+                angolo_terzo =Math.toDegrees(Math.atan(alpha));
+                writeToFile("in degrees"+Double.toString(angolo_terzo),log_name);
+            }
+        }
+        writeToFile("calcolato angoli",log_name);
+        //showToast(Double.toString(angolo_attuale));
+
+
+
+
+
+
 
     }
 
@@ -1302,6 +1403,26 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     public void onClick_panic(View v) {
 
         disable_virtual_control();
+        onDestroy();
+
+    }
+
+    public void onClick_pitch(View v) {
+
+        move_drone(0f,0f,1f,0f,1000);
+
+    }
+
+    public void onClick_roll(View v) {
+
+        move_drone(0f,0f,0f,1f,1000);
+
+    }
+
+
+    public void onClick_yaw(View v) {
+
+        move_drone(1f,0f,0f,0f,1000);
 
     }
 
