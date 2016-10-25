@@ -85,6 +85,21 @@
 
 
     <TextView
+        android:id="@+id/activity_main_land"
+        android:layout_width="100dp"
+        android:layout_height="30dp"
+        android:text="Start Landing"
+        android:clickable="true"
+        android:onClick="onClick_land"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="@color/colorWhite"
+        android:textColor="@color/colorBlack"
+        android:layout_below="@+id/activity_main_start_moving"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="13dp" />
+
+    <TextView
         android:id="@+id/activity_main_start_moving"
         android:layout_width="100dp"
         android:layout_height="30dp"
@@ -95,7 +110,24 @@
         android:gravity="center"
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
-        android:layout_alignParentBottom="true"
+        android:layout_marginTop="13dp"
+        android:layout_below="@+id/activity_main_find_marker"
         android:layout_alignParentStart="true" />
+
+    <TextView
+        android:id="@+id/activity_main_panic_button"
+        android:layout_width="100dp"
+        android:layout_height="30dp"
+        android:text="PANIC"
+        android:clickable="true"
+        android:onClick="onClick_panic"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="@color/colorWhite"
+        android:textColor="@color/colorBlack"
+        android:layout_marginTop="13dp"
+        android:layout_below="@+id/activity_main_land"
+        android:layout_alignParentStart="true" />
+
 
 </RelativeLayout>

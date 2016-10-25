@@ -1293,6 +1293,39 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
     }
 
+    public void onClick_land(View v) {
+
+        startLanding();
+
+    }
+
+    public void onClick_panic(View v) {
+
+        disable_virtual_control();
+
+    }
+
+    private void startLanding() {
+
+        if (mFlightController != null){
+            mFlightController.autoLanding(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("Landing Success");
+                            }
+                        }
+                    }
+            );
+
+
+        }
+    }
+
+
     private void displayPath(String path){
         path = path + "\n\n";
         if(pathList.size() < 6){
