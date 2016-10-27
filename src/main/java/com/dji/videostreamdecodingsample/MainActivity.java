@@ -57,6 +57,7 @@ import dji.common.flightcontroller.DJIVirtualStickFlightControlData;
 import dji.common.flightcontroller.DJIVirtualStickFlightCoordinateSystem;
 import dji.common.flightcontroller.DJIVirtualStickRollPitchControlMode;
 import dji.common.flightcontroller.DJIVirtualStickVerticalControlMode;
+import dji.common.flightcontroller.DJIVirtualStickYawControlMode;
 import dji.common.product.Model;
 import dji.common.util.DJICommonCallbacks;
 import dji.sdk.airlink.DJILBAirLink;
@@ -161,6 +162,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private float mYaw;
     private float mThrottle;
 
+    private float tPitch;
+    private float tRoll;
+
     //cose per la conversione in RGB
     private RenderScript rs;
     private ScriptIntrinsicYuvToRGB yuvToRgbIntrinsic;
@@ -235,12 +239,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //start_drone();
         //enable_virtual_control();
 
-        mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
+        //mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
 
-        float yaw =0.0f; // //0.07 al secondo (compreso tra -3 e +3)
+        float yaw =0.0f; //  180gradi
         float throttle = 0.0f; //
         float pitch =01.0f; // sposto di lato
-        float roll = 00.0f; // 6m/s credo sposto dritto
+        float roll = 00.0f; // 10m/s credo sposto dritto
 
        //move_drone(yaw,throttle,pitch,roll,3000);
 
@@ -259,25 +263,32 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-    private synchronized void  move_drone(float yaw, float throttle, float pitch, float roll, int dur){
+    private synchronized void  move_drone(float yaw, float angle, float velocity, float throttle, int dur){
 
         enable_virtual_control();
 
+        Double heading = mFlightController.getCompass().getHeading();
+
+
+        yaw = correctyaw(yaw,heading);
+
+        correctRollPitch(heading, angle,velocity);
 
 
 
 
-        float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxAngle;
-        float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxAngle;
+
+        float pitchJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
+        float rollJoyControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickRollPitchControlMaxVelocity;
         float verticalJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickVerticalControlMaxVelocity;
-        float yawJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickYawControlMaxAngle;
+        //float yawJoyStickControlMaxSpeed = DJIFlightControllerDataType.DJIVirtualStickYawControlMaxAngle;
 
-        mYaw = (float)(verticalJoyStickControlMaxSpeed * yaw);
-        mThrottle = (float)(yawJoyStickControlMaxSpeed * throttle);
+        mYaw = yaw;//(float)(yawJoyStickControlMaxSpeed * yaw);
+        mThrottle = (float)( verticalJoyStickControlMaxSpeed * throttle);
 
-        mPitch =(float)(pitchJoyControlMaxSpeed * pitch);
+        mPitch =(float)(pitchJoyControlMaxSpeed * tPitch);
 
-        mRoll = (float)(rollJoyControlMaxSpeed * roll);
+        mRoll = (float)(rollJoyControlMaxSpeed * tRoll);
 
 
 
@@ -297,6 +308,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
     }
+
+
 
     private void disable_virtual_control(){
         if (mFlightController != null){
@@ -352,10 +365,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                         }
                     }
             );
-            //mFlightController.setVirtualStickAdvancedModeEnabled(true);
-            mFlightController.setYawControlMode(Angle);
-            mFlightController.setRollPitchControlMode(DJIVirtualStickRollPitchControlMode.Angle);
-
+            //mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
+            mFlightController.setYawControlMode(DJIVirtualStickYawControlMode.Angle);
+            mFlightController.setRollPitchControlMode(DJIVirtualStickRollPitchControlMode.Velocity);
             mFlightController.setVerticalControlMode(DJIVirtualStickVerticalControlMode.Velocity);
         }
 
@@ -1408,21 +1420,23 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     }
 
     public void onClick_pitch(View v) {
+        writeToFile("schiaccio pitch",log_name);
 
-        move_drone(0f,0f,1f,0f,1000);
+        move_drone(0f,90f,1f,0f,1000);
 
     }
 
     public void onClick_roll(View v) {
+        writeToFile("schiaccio roll",log_name);
 
-        move_drone(0f,0f,0f,1f,1000);
+        move_drone(0f,0f,1.0f,0.0f,1000);
 
     }
 
 
     public void onClick_yaw(View v) {
-
-        move_drone(1f,0f,0f,0f,1000);
+        writeToFile("schiaccio yaw",log_name);
+        move_drone(90f,0f,0.0f,0.0f,1000);
 
     }
 
@@ -1515,6 +1529,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             if (mFlightController != null) {
 
+                //mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Body);
+                mFlightController.setHorizontalCoordinateSystem(DJIVirtualStickFlightCoordinateSystem.Ground);
+                //Double heading = mFlightController.getCompass().getHeading();
+                //correctHeading(heading);
 
                 mFlightController.sendVirtualStickFlightControlData(
 
@@ -1529,8 +1547,37 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 );
             }
         }
+
+
     }
 
+
+
+    private float correctyaw(float inYaw, Double heading) {
+
+
+               float yaw = (float) (inYaw + heading);
+               yaw = ((yaw + 180) % 360) - 180;
+               writeToFile("valore di heading:" + Double.toString(heading), log_name);
+               writeToFile("valore di yaw:" + Float.toString(yaw), log_name);
+
+               return yaw;
+
+    }
+
+    private void correctRollPitch(Double heading, float angle, float velocity ) {
+
+        Double real_angle =  (heading+angle);
+
+        tRoll = (float) (velocity*Math.cos(Math.toRadians(real_angle)));
+        tPitch=(float) (velocity*Math.sin(Math.toRadians(real_angle)));
+
+        writeToFile("valore di heading:"+Double.toString(real_angle),log_name);
+        writeToFile("valore di real angle:"+Double.toString(heading),log_name);
+        writeToFile("valore di pitch:"+Float.toString(tPitch),log_name);
+        writeToFile("valore di roll:"+Float.toString(tRoll),log_name);
+
+    }
 
 
     private void writeToFile(String content, String name){
