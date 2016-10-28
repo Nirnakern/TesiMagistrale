@@ -115,6 +115,21 @@
         android:layout_alignParentStart="true" />
 
     <TextView
+        android:id="@+id/activity_main_start"
+        android:layout_width="100dp"
+        android:layout_height="30dp"
+        android:text="Take off"
+        android:clickable="true"
+        android:onClick="onClick_start"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="@color/colorWhite"
+        android:textColor="@color/colorBlack"
+        android:layout_marginTop="13dp"
+        android:layout_below="@+id/activity_main_land"
+        android:layout_alignParentStart="true" />
+
+    <TextView
         android:id="@+id/activity_main_panic_button"
         android:layout_width="100dp"
         android:layout_height="30dp"
@@ -126,52 +141,10 @@
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
         android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_land"
+        android:layout_below="@+id/activity_main_start"
         android:layout_alignParentStart="true" />
 
-    <TextView
-        android:id="@+id/activity_main_pitch"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="pitch"
-        android:clickable="true"
-        android:onClick="onClick_pitch"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_panic_button"
-        android:layout_alignParentStart="true" />
 
-    <TextView
-        android:id="@+id/activity_main_roll"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="roll"
-        android:clickable="true"
-        android:onClick="onClick_roll"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_pitch"
-        android:layout_alignParentStart="true" />
 
-    <TextView
-        android:id="@+id/activity_main_panic_yaw"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="yaw"
-        android:clickable="true"
-        android:onClick="onClick_yaw"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_roll"
-        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

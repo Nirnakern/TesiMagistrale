@@ -1419,24 +1419,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     }
 
-    public void onClick_pitch(View v) {
-        writeToFile("schiaccio pitch",log_name);
-
-        move_drone(0f,90f,1f,0f,1000);
-
-    }
-
-    public void onClick_roll(View v) {
-        writeToFile("schiaccio roll",log_name);
-
-        move_drone(0f,0f,1.0f,0.0f,1000);
-
-    }
 
 
-    public void onClick_yaw(View v) {
-        writeToFile("schiaccio yaw",log_name);
-        move_drone(90f,0f,0.0f,0.0f,1000);
+    public void onClick_start(View v) {
+
+        start_drone();
+
 
     }
 
