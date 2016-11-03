@@ -147,7 +147,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     //blocchi
 
     boolean moving= false;
-    boolean photo_taken = false;
+    //boolean photo_taken = false;
 
 
     //drone automatic fly
@@ -173,9 +173,14 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     //moviment value
 
-    float move_speed = (float) 0.1;
-    int move_dur =1000;
-    int rotate_dur;
+    float move_speed = (float) 0.1; //velocità com cui mi muovo 1=>10 m/s
+    int move_dur =500; //tempo in cui mi muovo
+    int rotate_dur=500; //tempo in cui giro (tenere basso per non perdere controllo)
+
+    boolean stop=false;
+
+
+
 
     public MainActivity() {
     }
@@ -314,7 +319,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
     }
-
 
 
     private void disable_virtual_control(){
@@ -532,7 +536,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 && (button==2 || (button ==1 && flag_find==false))) { //ricordati che prendi i dati a 30fps non 60
+        if ((DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 && (button==2 || (button ==1 && flag_find==false))) && moving==false) { //ricordati che prendi i dati a 30fps non 60
 
 
             shootSD();
@@ -753,8 +757,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         Double correction_angle = compute_angle();
 
-        move_and_rotate(correction_angle);
 
+        moving=true;
+        move_and_rotate(correction_angle);
+        moving=false;
         //writeToFile("ho mosso il drone",log_name);
 
         //coloro di bianco i marker
@@ -892,23 +898,26 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     private void move_and_rotate(Double correction_angle) {
 
-        double temp = correction_angle;
-        float myCorrectionAngle =(float) temp;
+        if (stop==false) {  //ho il permesso di muovermi
 
-        move_drone(0,myCorrectionAngle,move_speed,0,move_dur);
+            double temp = correction_angle;
+            float myCorrectionAngle = (float) temp;
 
-        try {
-            wait(move_dur);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            move_drone(0, (myCorrectionAngle + 180), move_speed, 0, move_dur); //sommo 180 perchè uso l'angolo complementare, mi muovo nella direzione opposta
 
-        move_drone(myCorrectionAngle,0,0,0,rotate_dur);
+            try {
+                wait(move_dur);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-        try {
-            wait(rotate_dur);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            move_drone(myCorrectionAngle, 0, 0, 0, rotate_dur);
+
+            try {
+                wait(rotate_dur);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
     }
@@ -1246,10 +1255,26 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     }
 
+
+
     public void onClick_panic(View v) {
 
         disable_virtual_control();
         onDestroy();
+
+    }
+
+    public void onClick_pause (View v){
+
+        //fermo il movimento del drone, rischiacciando lo posso fare ripartire
+
+        if(stop==false) {
+            move_drone(0, 0, 0, 0, 1000);
+
+            stop = true;
+        }else{
+            stop=false;
+        }
 
     }
 

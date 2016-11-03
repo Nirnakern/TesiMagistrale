@@ -131,6 +131,23 @@
         android:layout_alignParentStart="true" />
 
     <TextView
+        android:id="@+id/activity_main_pause"
+        android:layout_width="100dp"
+        android:layout_height="30dp"
+        android:text="pause"
+        android:clickable="true"
+        android:onClick="onClick_pause"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="@color/colorWhite"
+        android:textColor="@color/colorBlack"
+        android:layout_marginTop="13dp"
+        android:layout_below="@+id/activity_main_start"
+        android:layout_alignParentStart="true" />
+
+
+
+    <TextView
         android:id="@+id/activity_main_panic_button"
         android:layout_width="100dp"
         android:layout_height="30dp"
@@ -142,9 +159,8 @@
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
         android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_start"
+        android:layout_below="@+id/activity_main_pause"
         android:layout_alignParentStart="true" />
-
 
 
     <!--<TextView
