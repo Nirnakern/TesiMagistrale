@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\com.android.support\appcompat-v7\23.4.0\jars\classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="548f06de403a9409f00554b3ee12a9fdea0e236c">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-appcompat-v7-23.4.0_b313cb622a6d090bb71f5eec5e918d538d6f1026\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\rxandroid-1.1.0.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="92b4c46bf73b1caff27f0ad2b73fcd5730fa37de">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\rxandroid-1.1.0_327b1ac11856bbea66f0e00f7b3167a944c95faf\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\dji_eventbus.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="91a5399115cedf41ebd53be7c96e424ac3aed1a8">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\dji_eventbus_2698f3682fdaab81e24b732faeab5063ed9ef042\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\com.android.support\animated-vector-drawable\23.4.0\jars\classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="de4db3785756bfb0915a9f59a9b3f2fea7407be4">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-animated-vector-drawable-23.4.0_6de9337746b5501d85ad953e59a6a7b57706a32a\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\com.android.support\support-v4\23.4.0\jars\classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="67bd36ee9340ec7c254108936ad16b24bed160cc">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-support-v4-23.4.0_7cc8f421cfc0c67874bd017aa04b48f28013b163\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\com.android.support\support-v4\23.4.0\jars\libs\internal_impl-23.4.0.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="ea3c07504d2c8f4b13aa17c45c1b68ed9c1c3674">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\internal_impl-23.4.0_a7c6df2eee35b755f39b17922f78998da6534c48\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\dji_gson.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="729a9cf81838d286b6098dc9c33d264d5db48a26">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\dji_gson_b57ec437563be809900df93fc5936059c8def306\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Simone\.gradle\caches\modules-2\files-2.1\org.apache.commons\commons-math3\3.6.1\e4ba98f1d4b3c80ec46392f25e094a6a2e58fcbf\commons-math3-3.6.1.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="e4ba98f1d4b3c80ec46392f25e094a6a2e58fcbf">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\commons-math3-3.6.1_e6ac445f963933e741421375c6c72fd3704c181a\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\dji-sdk.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="551ba42f5f20f93b3b759f72890c7843490d0429">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\dji-sdk_e86ffe4bfd11b6c07639b54c812fdaeb43577ba4\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\converter-gson-2.0.1.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="56caaeea09d3e406f6160972ff5d3e6c0e6f139b">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\converter-gson-2.0.1_c4ab4c16a3fb457e27bfef512bbca24fa4cf97eb\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Simone\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\23.4.0\support-annotations-23.4.0.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="ffbe55fdb2bb456b1485831706a9eac3300bb6b8">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\support-annotations-23.4.0_22217e14d970b576762e203044517c2e369eff15\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\retrofit-2.0.1.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="b55150f9b025eebdddb6426bb4e85e673af338a3">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\retrofit-2.0.1_fa9a8345cebe7986f560c0abf7daa0f944bd047d\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Simone\.gradle\caches\modules-2\files-2.1\org.apache.commons\commons-collections4\4.1\a4cf4688fe1c7e3a63aa636cc96d013af537768e\commons-collections4-4.1.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="a4cf4688fe1c7e3a63aa636cc96d013af537768e">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\commons-collections4-4.1_3f378ae07e67d230ad10511ac7e0feabf2c02f74\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\rxjava-1.1.2.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="d4f11e8e7dd89f5f87e5d81000582eabb071da91">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\rxjava-1.1.2_fd889d7a923e264bb36912c21eb4403bcf4d55ee\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="9f61a616ef40fcb6b7739b80abb3f2a35286fabf">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run-bootstrap_655bcd5b2f50cb72c365d03c3ce6f327144afd87\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Program Files\Android\Android Studio\gradle\m2repository\com\google\code\gson\gson\2.2.4\gson-2.2.4.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="a60a5e993c98c864010053cb901b7eab25306568">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\gson-2.2.4_313aff129984a0a45e086871ec03bfcc02e7284e\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\okhttp-3.2.0.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="03773badcb9e99ad699db657fa0e20cafbf774ef">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\okhttp-3.2.0_05d04491f59faaa887cdae8be0975a8d2163d5cc\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\okio-1.7.0.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="58a92147e3365aa0039fc81a31b87f4957e6a555">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\okio-1.7.0_b58e16411898fd540711b8820246ba4b8cfbd9a8\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\com.android.support\support-vector-drawable\23.4.0\jars\classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="c2c594cace5d83a3227b2b6e658ecbfd586d3ed9">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-support-vector-drawable-23.4.0_3ca998aaeae774ccc6eded5d8fd13260206b9bff\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\exploded-aar\android-videostreamdecodingsample\dJISDKLIB\unspecified\jars\libs\sqlbrite-0.6.2.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="80411084d9962ab5b48b274bb4b49e063095535a">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\8\sqlbrite-0.6.2_6df1bd65947977588369dd9e7545e9c986df661a\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="D:\android-videostreamdecodingsample\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="23.0.2"
+        sha1="a1aad0fa740e8a0c808591d458e043942ba25362">
+        <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run_97437ba965b08adae63a7963ba0cc96fbddc1ef4\classes.dex" />
+    </item>
+
+</items>

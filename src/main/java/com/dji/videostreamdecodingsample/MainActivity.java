@@ -131,8 +131,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     //range colori accettabili
-    double delta_min =0.8;
-    double delta_max = 1.5;
+    double delta_min =0.70;
+    double delta_max = 1.7;
 
     //clasterizzazione
 
@@ -173,11 +173,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     //moviment value
 
-    float move_speed = (float) 0.1; //velocità com cui mi muovo 1=>10 m/s
+    float move_speed = (float) 0.05; //velocità com cui mi muovo 1=>15 m/s
     int move_dur =500; //tempo in cui mi muovo
     int rotate_dur=500; //tempo in cui giro (tenere basso per non perdere controllo)
 
-    boolean stop=false;
+    boolean stop=true;
 
 
 
@@ -792,21 +792,34 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 int shifted_green_pixel=0;
                 int shifted_blue_pixel=0;
 
-                pixels_red[temp_center.y+c][temp_center.x]=shifted_red_pixel;
-                pixels_green[temp_center.y+c][temp_center.x]=shifted_green_pixel<<8;
-                pixels_blue[temp_center.y+c][temp_center.x]=shifted_blue_pixel<<16;
+                int temp_center_y_plus_c=temp_center.y+c;
+                int temp_center_y_minus_c=temp_center.y-c;
+                int temp_center_x_plus_c=temp_center.x+c;
+                int temp_center_x_minus_c=temp_center.x-c;
 
-                pixels_red[temp_center.y][temp_center.x+c]=shifted_red_pixel;
-                pixels_green[temp_center.y][temp_center.x+c]=shifted_green_pixel<<8;
-                pixels_blue[temp_center.y][temp_center.x+c]=shifted_blue_pixel<<16;
+                if (temp_center_y_plus_c<720) {
+                    pixels_red[temp_center_y_plus_c][temp_center.x] = shifted_red_pixel;
+                    pixels_green[temp_center_y_plus_c][temp_center.x] = shifted_green_pixel << 8;
+                    pixels_blue[temp_center_y_plus_c][temp_center.x] = shifted_blue_pixel << 16;
+                }
 
-                pixels_red[temp_center.y-c][temp_center.x]=shifted_red_pixel;
-                pixels_green[temp_center.y-c][temp_center.x]=shifted_green_pixel<<8;
-                pixels_blue[temp_center.y-c][temp_center.x]=shifted_blue_pixel<<16;
+                if (temp_center_x_plus_c<1280) {
+                    pixels_red[temp_center.y][temp_center_x_plus_c] = shifted_red_pixel;
+                    pixels_green[temp_center.y][temp_center_x_plus_c] = shifted_green_pixel << 8;
+                    pixels_blue[temp_center.y][temp_center_x_plus_c] = shifted_blue_pixel << 16;
+                }
 
-                pixels_red[temp_center.y][temp_center.x-c]=shifted_red_pixel;
-                pixels_green[temp_center.y][temp_center.x-c]=shifted_green_pixel<<8;
-                pixels_blue[temp_center.y][temp_center.x-c]=shifted_blue_pixel<<16;
+                if(temp_center_y_minus_c>0) {
+                    pixels_red[temp_center_y_minus_c][temp_center.x] = shifted_red_pixel;
+                    pixels_green[temp_center_y_minus_c][temp_center.x] = shifted_green_pixel << 8;
+                    pixels_blue[temp_center_y_minus_c][temp_center.x] = shifted_blue_pixel << 16;
+                }
+
+                if(temp_center_x_minus_c>0) {
+                    pixels_red[temp_center.y][temp_center_x_minus_c] = shifted_red_pixel;
+                    pixels_green[temp_center.y][temp_center_x_minus_c] = shifted_green_pixel << 8;
+                    pixels_blue[temp_center.y][temp_center_x_minus_c] = shifted_blue_pixel << 16;
+                }
 
 
 
@@ -825,13 +838,43 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             int y= (int) (Math.tan(Math.toRadians(correction_angle))*i);
 
-            pixels_red[centro_y+y][centro_x+i]=shifted_red_pixel;
-            pixels_green[centro_y+y][centro_x+i]=shifted_green_pixel<<8;
-            pixels_blue[centro_y+y][centro_x+i]=shifted_blue_pixel<<16;
 
-            pixels_red[centro_y-y][centro_x-i]=shifted_red_pixel;
-            pixels_green[centro_y-y][centro_x-i]=shifted_green_pixel<<8;
-            pixels_blue[centro_y-y][centro_x-i]=shifted_blue_pixel<<16;
+            //evito di uscire dall'array
+            int centro_piu_y = centro_y+y;
+            int centro_meno_y = centro_y-y;
+
+            if (centro_piu_y<0)
+                centro_piu_y=0;
+            if (centro_piu_y>719)
+                centro_piu_y=719;
+
+
+            if (centro_meno_y<0)
+                centro_meno_y=0;
+            if (centro_meno_y>719)
+                centro_meno_y=719;
+
+            int centro_piu_i = centro_y+y;
+            int centro_meno_i = centro_y-y;
+
+            if (centro_piu_i<0)
+                centro_piu_i=0;
+            if (centro_piu_i>1279)
+                centro_piu_i=1279;
+
+
+            if (centro_meno_i<0)
+                centro_meno_i=0;
+            if (centro_meno_i>1279)
+                centro_meno_i=1279;
+
+            pixels_red[centro_piu_y][centro_piu_i]=shifted_red_pixel;
+            pixels_green[centro_piu_y][centro_piu_i]=shifted_green_pixel<<8;
+            pixels_blue[centro_piu_y][centro_piu_i]=shifted_blue_pixel<<16;
+
+            pixels_red[centro_meno_y][centro_meno_i]=shifted_red_pixel;
+            pixels_green[centro_meno_y][centro_meno_i]=shifted_green_pixel<<8;
+            pixels_blue[centro_meno_y][centro_meno_i]=shifted_blue_pixel<<16;
 
 
 
@@ -1180,24 +1223,26 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //controlliamo se tutti sono sensati
 
         long dim_media=0;
-        for (int i=0;i<completed_marker.size();i++){
-            dim_media=dim_media+completed_marker.get(i).num_sum;
-        }
 
-        dim_media=dim_media/completed_marker.size();
-
-        for (int i=0;i<completed_marker.size();i++){
-
-            if (completed_marker.get(i).num_sum>dim_media*delta_min_dim && completed_marker.get(i).num_sum<dim_media*delta_max_dim) {
-                //writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
-
-                centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
-
+        if (completed_marker.size()>0) {
+            for (int i = 0; i < completed_marker.size(); i++) {
+                dim_media = dim_media + completed_marker.get(i).num_sum;
             }
+
+            dim_media = dim_media / completed_marker.size();
+
+            for (int i = 0; i < completed_marker.size(); i++) {
+
+                if (completed_marker.get(i).num_sum > dim_media * delta_min_dim && completed_marker.get(i).num_sum < dim_media * delta_max_dim) {
+                    //writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
+
+                    centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
+
+                }
+            }
+            //writeToFile("Centri trovati dopo il controllo:"+Integer.toString(centri.size()),log_name);
+
         }
-        //writeToFile("Centri trovati dopo il controllo:"+Integer.toString(centri.size()),log_name);
-
-
 
 
 
