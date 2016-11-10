@@ -131,8 +131,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     //range colori accettabili
-    double delta_min =0.70;
-    double delta_max = 1.7;
+    double delta_min =0.50;
+    double delta_max = 2.0;
 
     //clasterizzazione
 
@@ -178,6 +178,22 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int rotate_dur=500; //tempo in cui giro (tenere basso per non perdere controllo)
 
     boolean stop=true;
+
+    //moviment and photo flag
+
+    boolean position =false;
+    boolean photo_taken = false;
+    boolean angle_is_good =false;
+    boolean distance_is_good = false;
+    int centre_position =720-150; //from botton=> 750-pos
+
+    Point p1 = new Point();
+    Point p2 = new Point();
+    boolean point_updated=false;
+
+    //debug
+
+    int debug_contatore=0;
 
 
 
@@ -534,69 +550,83 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
+        if (photo_taken==true){//ho appena fatto la foto, quindi mi sposto a dx
+
+            move_drone(0,90,0.05f,0,400); //mi muovo a dx a 75 cm/s per 0.4secondi
+            photo_taken=false;
+            showToast("muovo a dx");
+        }else {
+
+            if ((DJIVideoStreamDecoder.getInstance().frameIndex % 180 == 0 && (button == 2 || (button == 1 && flag_find == false))) && moving == false) { //ricordati che prendi i dati a 30fps non 60
+                debug_contatore++;
+                writeToFile(Integer.toString(debug_contatore),log_name);
+
+                if (position==true){
+                    writeToFile("faccio foto",log_name);
+                    shootSD();
+                    photo_taken=true;
+                    showToast("faccio foto");
+                    position=false;
+                }else {
+
+                    //writeToFile("scrivo su file, button = "+Integer.toString(button),log_name);
+                    if (button == 1)
+                        flag_find = true;
+
+                    //qui mi creo degli array, nulla di che
+                    byte[] y = new byte[width * height];
+                    byte[] u = new byte[width * height / 4];
+                    byte[] v = new byte[width * height / 4];
+                    byte[] nu = new byte[width * height / 4]; //
+                    byte[] nv = new byte[width * height / 4];
 
 
-        if ((DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 && (button==2 || (button ==1 && flag_find==false))) && moving==false) { //ricordati che prendi i dati a 30fps non 60
+                    //copio yuv frame in y per w*h posti
+                    System.arraycopy(yuvFrame, 0, y, 0, y.length);
 
 
-            shootSD();
-
-            //writeToFile("scrivo su file, button = "+Integer.toString(button),log_name);
-            if (button==1)
-                flag_find=true;
-
-            //qui mi creo degli array, nulla di che
-            byte[] y = new byte[width * height];
-            byte[] u = new byte[width * height / 4];
-            byte[] v = new byte[width * height / 4];
-            byte[] nu = new byte[width * height / 4]; //
-            byte[] nv = new byte[width * height / 4];
+                    //copio u e v
+                    for (int i = 0; i < u.length; i++) {
+                        v[i] = yuvFrame[y.length + 2 * i];
+                        u[i] = yuvFrame[y.length + 2 * i + 1];
+                    }
 
 
-            //copio yuv frame in y per w*h posti
-            System.arraycopy(yuvFrame, 0, y, 0, y.length);
+                    // giusto variabili sensate
+                    int uvWidth = width / 2;
+                    int uvHeight = height / 2;
 
 
-            //copio u e v
-            for (int i = 0; i < u.length; i++) {
-                v[i] = yuvFrame[y.length + 2 * i];
-                u[i] = yuvFrame[y.length + 2 * i + 1];
-            }
+                    for (int j = 0; j < uvWidth / 2; j++) {
+                        for (int i = 0; i < uvHeight / 2; i++) {
+                            byte uSample1 = u[i * uvWidth + j];
+                            byte uSample2 = u[i * uvWidth + j + uvWidth / 2];
+                            byte vSample1 = v[(i + uvHeight / 2) * uvWidth + j];
+                            byte vSample2 = v[(i + uvHeight / 2) * uvWidth + j + uvWidth / 2];
+                            nu[2 * (i * uvWidth + j)] = uSample1;
+                            nu[2 * (i * uvWidth + j) + 1] = uSample1;
+                            nu[2 * (i * uvWidth + j) + uvWidth] = uSample2;
+                            nu[2 * (i * uvWidth + j) + 1 + uvWidth] = uSample2;
+                            nv[2 * (i * uvWidth + j)] = vSample1;
+                            nv[2 * (i * uvWidth + j) + 1] = vSample1;
+                            nv[2 * (i * uvWidth + j) + uvWidth] = vSample2;
+                            nv[2 * (i * uvWidth + j) + 1 + uvWidth] = vSample2;
+                        }
+                    }
+                    //nv21test
+                    byte[] bytes = new byte[yuvFrame.length];
+                    System.arraycopy(y, 0, bytes, 0, y.length);
+                    for (int i = 0; i < u.length; i++) {
+                        bytes[y.length + (i * 2)] = nv[i];
+                        bytes[y.length + (i * 2) + 1] = nu[i];
+                    }
 
+                    findRGB(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
 
-            // giusto variabili sensate
-            int uvWidth = width / 2;
-            int uvHeight = height / 2;
-
-
-            for (int j = 0; j < uvWidth / 2; j++) {
-                for (int i = 0; i < uvHeight / 2; i++) {
-                    byte uSample1 = u[i * uvWidth + j];
-                    byte uSample2 = u[i * uvWidth + j + uvWidth / 2];
-                    byte vSample1 = v[(i + uvHeight / 2) * uvWidth + j];
-                    byte vSample2 = v[(i + uvHeight / 2) * uvWidth + j + uvWidth / 2];
-                    nu[2 * (i * uvWidth + j)] = uSample1;
-                    nu[2 * (i * uvWidth + j) + 1] = uSample1;
-                    nu[2 * (i * uvWidth + j) + uvWidth] = uSample2;
-                    nu[2 * (i * uvWidth + j) + 1 + uvWidth] = uSample2;
-                    nv[2 * (i * uvWidth + j)] = vSample1;
-                    nv[2 * (i * uvWidth + j) + 1] = vSample1;
-                    nv[2 * (i * uvWidth + j) + uvWidth] = vSample2;
-                    nv[2 * (i * uvWidth + j) + 1 + uvWidth] = vSample2;
                 }
             }
-            //nv21test
-            byte[] bytes = new byte[yuvFrame.length];
-            System.arraycopy(y, 0, bytes, 0, y.length);
-            for (int i = 0; i < u.length; i++) {
-                bytes[y.length + (i * 2)] = nv[i];
-                bytes[y.length + (i * 2) + 1] = nu[i];
-            }
-
-            findRGB(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
-
-
         }
+
     }
 
     private void shootSD() {
@@ -753,14 +783,57 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         find_center(marker, width, height);
         //writeToFile("sono subito dopo aver trovato i centri",log_name);
+        Double angle = compute_angle();
+
+            writeToFile("calcolo anggolo",log_name);
 
 
-        Double correction_angle = compute_angle();
+            if (angle>-20 && angle<20){
+                angle_is_good=true;
+            }else {
+                angle = angle%180;
+                if(angle>0 && angle<90){
+                    showToast("ruoto a dx");
+                }else{
+                    showToast("ruoto a sx");
+                }
+
+//
+//                showToast("ruoto:"+Double.toString(angle)+"da"+Double.toString(angle));
+//                moving = true;
+//                move_and_rotate(angle, 0);
+//                moving = false;
+            }
+         if(angle_is_good==true && distance_is_good==false){
+
+            writeToFile("calcolo distanza",log_name);
+            int distance = compute_distance(angle);
+
+            if (distance>-50 && distance <50){
+                distance_is_good=true;
+            }else{
+                if (distance>0){ // => riga più in alto del pto di riferimento, perchè le righe si contano dall'alto
+                    showToast("muovo indietro");
+//                    moving = true;
+//                    move_and_rotate(0.00, distance);
+//                    moving = false;
+                }else{ //=> riga più in basso
+                    showToast("muovo avanti");
+//                    moving = true;
+//                    move_and_rotate(0.00, distance);
+//                    moving = false;
+
+                }
+
+            }
 
 
-        moving=true;
-        move_and_rotate(correction_angle);
-        moving=false;
+        }else if (angle_is_good==true && distance_is_good==true){
+            writeToFile("tutto ok, setto position=true",log_name);
+            position=true;
+            angle_is_good=false;
+            distance_is_good=false;
+        }
         //writeToFile("ho mosso il drone",log_name);
 
         //coloro di bianco i marker
@@ -830,13 +903,13 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         int centro_y =360;
 
         //coloro di blu l'angolo
-        for (int i=0;i<30;i++){
+        /*for (int i=0;i<30;i++){
 
             int shifted_red_pixel=0;
             int shifted_green_pixel=0;
             int shifted_blue_pixel=255;
 
-            int y= (int) (Math.tan(Math.toRadians(correction_angle))*i);
+            int y= (int) (Math.tan(Math.toRadians(angle))*i);
 
 
             //evito di uscire dall'array
@@ -880,9 +953,63 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        }
+        }*/
 
         //writeToFile("arrivo a dover mostrare img",log_name);
+
+        //create mask
+
+        for (int i=0;i<width;i++) {
+
+            int shifted_red_pixel=0;
+            int shifted_green_pixel=0;
+            int shifted_blue_pixel=255;
+
+            pixels_red[centre_position][i]=shifted_red_pixel;
+            pixels_green[centre_position][i]=shifted_green_pixel<<8;
+            pixels_blue[centre_position][i]=shifted_blue_pixel<<16;
+
+        }
+
+        for (int i=0;i<height;i++) {
+
+            int shifted_red_pixel=0;
+            int shifted_green_pixel=0;
+            int shifted_blue_pixel=255;
+
+            pixels_red[i][640]=shifted_red_pixel;
+            pixels_green[i][640]=shifted_green_pixel<<8;
+            pixels_blue[i][640]=shifted_blue_pixel<<16;
+
+        }
+
+        //make line
+
+        if(point_updated==true) {
+
+            //writeToFile("coordinate p1:"+Integer.toString(p1.x)+"-"+Integer.toString(p1.y),log_name);
+            //writeToFile("coordinate p2:"+Integer.toString(p2.x)+"-"+Integer.toString(p2.y),log_name);
+            float incremento = (float)(((float) (p2.y - p1.y)) / ((float)(p2.x - p1.x)));
+            //writeToFile("incremento:"+Float.toString(incremento),log_name);
+
+            contatore=0;
+            for (int i = p1.x; i < p2.x; i++) {
+
+                //writeToFile("coordinate nuovo punto:"+Integer.toString(i)+"-"+Integer.toString(p1.y+((int)(incremento*contatore))),log_name);
+                int shifted_red_pixel=0;
+                int shifted_green_pixel=255;
+                int shifted_blue_pixel=0;
+
+                pixels_red[p1.y+((int)(incremento*contatore))][i]=shifted_red_pixel;
+                pixels_green[p1.y+((int)(incremento*contatore))][i]=shifted_green_pixel<<8;
+                pixels_blue[p1.y+((int)(incremento*contatore))][i]=shifted_blue_pixel<<16;
+
+                contatore++;
+
+            }
+            point_updated=false;
+        }
+
 
 
         //from here code to show image taken
@@ -939,54 +1066,28 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     }
 
-    private void move_and_rotate(Double correction_angle) {
+    private int compute_distance(Double angle) {
 
-        if (stop==false) {  //ho il permesso di muovermi
-
-            double temp = correction_angle;
-            float myCorrectionAngle = (float) temp;
-
-            move_drone(0, (myCorrectionAngle + 180), move_speed, 0, move_dur); //sommo 180 perchè uso l'angolo complementare, mi muovo nella direzione opposta
-
-            try {
-                wait(move_dur);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            move_drone(myCorrectionAngle, 0, 0, 0, rotate_dur);
-
-            try {
-                wait(rotate_dur);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
-
-
-    private Double compute_angle() {
-
-        float peso_angolo_attuale;
-        float peso_angolo_secondo;
-        float peso_angolo_terzo;
-
-
-        ArrayList<Marker_percorso> local_centri = new ArrayList<>();
-        Point centro = new Point(640,0);
+        ArrayList<Marker_percorso> local_centri_positive = new ArrayList<>();
+        ArrayList<Marker_percorso> local_centri_negative = new ArrayList<>();
+        Point centro = new Point(640,720);
 
         for (int i=0;i<centri.size();i++){
             Marker_percorso mark = new Marker_percorso();
             mark.coordinate.set(centri.get(i).x,(centri.get(i).y));
-            int distanza =(int) Math.sqrt(Math.pow((centro.x-mark.coordinate.x),2)+Math.pow((centro.y*3-mark.coordinate.y*3),2));
+            int distanza =(int)Math.abs( Math.sqrt(Math.pow((centro.x-mark.coordinate.x),2)+Math.pow((centro.y-mark.coordinate.y),2)));
             mark.distanza=distanza;
-            local_centri.add(mark);
+            if (mark.coordinate.x-centro.x>0){
+                local_centri_positive.add(mark);
+            }else{
+                local_centri_negative.add(mark);
+            }
+
         }
 
         //writeToFile("Creato oggetti",log_name);
 
-        Collections.sort(local_centri, new Comparator<Marker_percorso>() {
+        Collections.sort(local_centri_positive, new Comparator<Marker_percorso>() {
             @Override
             public int compare(Marker_percorso o1, Marker_percorso o2) {
                 if (o1.distanza>o2.distanza)
@@ -996,20 +1097,155 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             }
         });
 
+        Collections.sort(local_centri_negative, new Comparator<Marker_percorso>() {
+            @Override
+            public int compare(Marker_percorso o1, Marker_percorso o2) {
+                if (o1.distanza>o2.distanza)
+                    return o2.distanza;
+                else
+                    return o1.distanza;
+            }
+        });
+
+
+        //writeToFile("nuovo giro:",log_name);
+       // for (int i=0;i<local_centri_negative.size();i++){
+        //    writeToFile("centro:"+Integer.toString(i)+"coordinate"+Integer.toString(local_centri_negative.get(i).coordinate.x)+"-"+Integer.toString(local_centri_negative.get(i).coordinate.y)+"distanza:"+
+        //            Integer.toString(local_centri_negative.get(i).distanza),log_name);
+        //}
+
+        //writeToFile("dx:",log_name);
+        //for (int i=0;i<local_centri_positive.size();i++){
+        //    writeToFile("centro:"+Integer.toString(i)+"coordinate"+Integer.toString(local_centri_positive.get(i).coordinate.x)+"-"+Integer.toString(local_centri_positive.get(i).coordinate.y)+"distanza:"+
+        //            Integer.toString(local_centri_positive.get(i).distanza),log_name);
+       // }
+
+
+
+        if (local_centri_negative.size()>0 && local_centri_positive.size()>0) {
+
+            p1.set(local_centri_negative.get(local_centri_negative.size()-1).coordinate.x,local_centri_negative.get(local_centri_negative.size()-1).coordinate.y);
+            p2.set(local_centri_positive.get(0).coordinate.x,local_centri_positive.get(0).coordinate.y);
+            point_updated=true;
+
+            int x_punto = local_centri_negative.get(local_centri_negative.size()-1).coordinate.x;
+            int y_punto = local_centri_negative.get(local_centri_negative.size()-1).coordinate.y;
+
+            double m = Math.tan(Math.toRadians(angle));
+
+            int x_centro = (int) (((  640-x_punto) * m) + y_punto);
+
+            return (x_centro - centre_position);
+        }else {
+            return 0;
+        }
+
+
+
+
+    }
+
+    private void move_and_rotate(Double correction_angle, int distance) {
+        if (correction_angle!=0) {
+
+            if (stop == false) {  //ho il permesso di muovermi
+
+                double temp = correction_angle;
+                float myCorrectionAngle = (float) temp;
+
+                move_drone(myCorrectionAngle, 0, 0, 0, rotate_dur); //sommo 180 perchè uso l'angolo complementare, mi muovo nella direzione opposta
+
+                try {
+                    wait(move_dur);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }else {
+
+            if (stop == false) {
+
+
+                //move_drone(0, 0, 0.03f, 0, distance); //sommo 180 perchè uso l'angolo complementare, mi muovo nella direzione opposta
+
+
+                try {
+                    wait(distance);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        }
+
+    }
+
+
+    private Double compute_angle() {
+
+
+
+
+        ArrayList<Marker_percorso> local_centri_positive = new ArrayList<>();
+        ArrayList<Marker_percorso> local_centri_negative = new ArrayList<>();
+        Point centro = new Point(640,centre_position);
+
+        for (int i=0;i<centri.size();i++){
+            Marker_percorso mark = new Marker_percorso();
+            mark.coordinate.set(centri.get(i).x,(centri.get(i).y));
+            int distanza =(int)Math.abs( Math.sqrt(Math.pow((centro.x-mark.coordinate.x),2)+Math.pow((centro.y-mark.coordinate.y),2)));
+            mark.distanza=distanza;
+            if (mark.coordinate.x-centro.x>0){
+                local_centri_positive.add(mark);
+            }else{
+                local_centri_negative.add(mark);
+            }
+
+        }
+
+        //writeToFile("Creato oggetti",log_name);
+
+        Collections.sort(local_centri_positive, new Comparator<Marker_percorso>() {
+            @Override
+            public int compare(Marker_percorso o1, Marker_percorso o2) {
+                if (o1.distanza>o2.distanza)
+                    return o2.distanza;
+                else
+                    return o1.distanza;
+            }
+        });
+
+        Collections.sort(local_centri_negative, new Comparator<Marker_percorso>() {
+            @Override
+            public int compare(Marker_percorso o1, Marker_percorso o2) {
+                if (o2.distanza>o1.distanza)
+                    return o2.distanza;
+                else
+                    return o1.distanza;
+            }
+        });
+
+//        writeToFile("nuovo giro:",log_name);
+//        for (int i=0;i<local_centri_negative.size();i++){
+//            writeToFile("centro:"+Integer.toString(i)+"coordinate"+Integer.toString(local_centri_negative.get(i).coordinate.x)+"-"+Integer.toString(local_centri_negative.get(i).coordinate.y)+"distanza:"+
+//            Integer.toString(local_centri_negative.get(i).distanza),log_name);
+//        }
+
         //writeToFile("Ordinato oggetti",log_name);
 
         Double angolo_attuale = 0.000;
-        Double angolo_secondo=0.0;
-        Double angolo_terzo=0.0;
-        //writeToFile("local_centri ha dimensione"+Integer.toString(local_centri.size()),log_name);
-        for (int i=0;i<local_centri.size();i++){
 
-            if (local_centri.size()>1 && i==0) {
+        //writeToFile("local_centri ha dimensione"+Integer.toString(local_centri.size()),log_name);
+        if (local_centri_positive.size()>0 && local_centri_negative.size()>0){
+
+
                 //writeToFile("primo angolo",log_name);
                 //writeToFile( local_centri.get(i).tostring()+ "   "+ local_centri.get(i+1).tostring(),log_name);
 
-                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
-                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
+                double alpha = (double) (local_centri_negative.get(local_centri_negative.size()-1).coordinate.y-local_centri_positive.get(0).coordinate.y)/
+                        (local_centri_negative.get(local_centri_negative.size()-1).coordinate.x-local_centri_positive.get(0).coordinate.x);
                 //writeToFile("alpha:"+Double.toString(alpha),log_name);
                 angolo_attuale =(Math.atan(alpha));
                 //writeToFile("atan di alpha"+Double.toString(angolo_attuale),log_name);
@@ -1018,25 +1254,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 //writeToFile("in degrees"+Double.toString(angolo_attuale),log_name);
                 //showToast(Double.toString(angolo_attuale));
 
-            }/*
-            if (local_centri.size()>2 && i==1) {
-                //writeToFile("secondo angolo",log_name);
+                p1.set(local_centri_negative.get(local_centri_negative.size()-1).coordinate.x,local_centri_negative.get(local_centri_negative.size()-1).coordinate.y);
+                p2.set(local_centri_positive.get(0).coordinate.x,local_centri_positive.get(0).coordinate.y);
+                point_updated=true;
 
-                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
-                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
 
-                angolo_secondo =Math.toDegrees(Math.atan(alpha));
-                //writeToFile("in degrees"+Double.toString(angolo_secondo),log_name);
-            }
-            if (local_centri.size()>3 && i==2) {
-                //writeToFile("terzo angolo",log_name);
-
-                double alpha = (double) (local_centri.get(i).coordinate.y-local_centri.get(i+1).coordinate.y)/
-                        (local_centri.get(i).coordinate.x-local_centri.get(i+1).coordinate.x);
-
-                angolo_terzo =Math.toDegrees(Math.atan(alpha));
-                //writeToFile("in degrees"+Double.toString(angolo_terzo),log_name);
-            }*/
         }
         //writeToFile("calcolato angoli",log_name);
         //showToast(Double.toString(angolo_attuale));
