@@ -758,7 +758,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                             ((pixels_blue[y_touch][x_touch+1]) >> 16)+((pixels_blue[y_touch][x_touch+2]) >> 16)+
                             ((pixels_blue[y_touch][x_touch-1]) >> 16)+((pixels_blue[y_touch][x_touch-2]) >> 16))/9;
             flag=true;
-            writeToFile(Integer.toString(touched_R)+"--"+Integer.toString(touched_G)+"--"+Integer.toString(touched_B),log_name   );
+            //writeToFile(Integer.toString(touched_R)+"--"+Integer.toString(touched_G)+"--"+Integer.toString(touched_B),log_name   );
 
         }
 
@@ -779,49 +779,48 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
 
-        for (int i=0;i<width*height;i++){
+        for (int i=1;i<height-1;i++){//altezza
+            for (int j=1;j<width-1;j++) {//larghezza
 
 
+                //rimappa in 0-255
+                int shifted_red_pixel = pixels_red[i][j];
+                int shifted_green_pixel = (pixels_green[i][j]) >> 8;
+                int shifted_blue_pixel = (pixels_blue[i][j]) >> 16;
 
-            //rimappa in 0-255
-            int shifted_red_pixel=pixels_red[i/width][i%width];
-            int shifted_green_pixel=(pixels_green[i/width][i%width])>>8;
-            int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
+                if (shifted_red_pixel == 0)
+                    shifted_red_pixel = 1;
 
-            if(shifted_red_pixel==0)
-                shifted_red_pixel=1;
+                if (shifted_green_pixel == 0)
+                    shifted_green_pixel = 1;
 
-            if(shifted_green_pixel==0)
-                shifted_green_pixel=1;
-
-            if(shifted_blue_pixel==0)
-                shifted_blue_pixel=1;
-
+                if (shifted_blue_pixel == 0)
+                    shifted_blue_pixel = 1;
 
 
-            Double rapporto_s_R_G= Double.valueOf(shifted_red_pixel/shifted_green_pixel);
-            Double rapporto_s_G_B= Double.valueOf(shifted_green_pixel/shifted_blue_pixel);
-            Double rapporto_s_B_R= Double.valueOf(shifted_blue_pixel/shifted_red_pixel);
+                Double rapporto_s_R_G = Double.valueOf(shifted_red_pixel / shifted_green_pixel);
+                Double rapporto_s_G_B = Double.valueOf(shifted_green_pixel / shifted_blue_pixel);
+                Double rapporto_s_B_R = Double.valueOf(shifted_blue_pixel / shifted_red_pixel);
 
 
-            if ((rapporto_s_R_G>=(rapporto_R_G*(1-delta_color)) && rapporto_s_R_G<=(rapporto_R_G*(1+delta_color)))
-                    && (rapporto_s_G_B>=(rapporto_G_B*(1-delta_color)) && rapporto_s_G_B<=(rapporto_G_B*(1+delta_color)))
-                    && (rapporto_s_B_R>=(rapporto_B_R*(1-delta_color)) && rapporto_s_B_R<=(rapporto_B_R*(1+delta_color)))) {
+                if ((rapporto_s_R_G >= (rapporto_R_G * (1 - delta_color)) && rapporto_s_R_G <= (rapporto_R_G * (1 + delta_color)))
+                        && (rapporto_s_G_B >= (rapporto_G_B * (1 - delta_color)) && rapporto_s_G_B <= (rapporto_G_B * (1 + delta_color)))
+                        && (rapporto_s_B_R >= (rapporto_B_R * (1 - delta_color)) && rapporto_s_B_R <= (rapporto_B_R * (1 + delta_color)))) {
 
-                marker[i/width][i%width]=true;
+                    marker[i][j] = true;
 
-                shifted_red_pixel=254;
-                shifted_green_pixel=254;
-                shifted_blue_pixel=254;
+                    shifted_red_pixel = 254;
+                    shifted_green_pixel = 254;
+                    shifted_blue_pixel = 254;
 
-            }else{
-                marker[i/width][i%width]=false;
+                } else {
+                    marker[i][j] = false;
+                }
+
+                pixels_red[i][j] = shifted_red_pixel;
+                pixels_green[i][j] = shifted_green_pixel << 8;
+                pixels_blue[i][j] = shifted_blue_pixel << 16;
             }
-
-            pixels_red[i/width][i%width]=shifted_red_pixel;
-            pixels_green[i/width][i%width]=shifted_green_pixel<<8;
-            pixels_blue[i/width][i%width]=shifted_blue_pixel<<16;
-
         }
 
 
