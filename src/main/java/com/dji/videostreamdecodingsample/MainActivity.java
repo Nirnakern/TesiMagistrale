@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
@@ -83,6 +84,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private SurfaceHolder videostreamPreviewSh;
 
     private ImageView show_image;
+    private ImageView show_grid;
     String log_name=null;
 
 
@@ -437,7 +439,16 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         show_image = (ImageView) findViewById(R.id.show_picture);
 
+        show_grid = (ImageView) findViewById(R.id.show_grid);
 
+        Bitmap grid_bmp = Bitmap.createBitmap(1280,720, Bitmap.Config.ARGB_8888);
+
+        for (int i=0;i<1280;i++)
+            grid_bmp.setPixel(i,centre_position, Color.BLUE);
+        for (int i=0;i<720;i++)
+            grid_bmp.setPixel(640,i,Color.BLUE);
+
+        show_grid.setImageBitmap(grid_bmp);
 
 
         savePath = (TextView) findViewById(R.id.activity_main_save_path);
@@ -1546,6 +1557,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             show_image.setVisibility(View.INVISIBLE);
             videostreamPreviewTtView.setVisibility(View.VISIBLE);
             videostreamPreviewSf.setVisibility(View.VISIBLE);
+            show_grid.setVisibility(View.INVISIBLE);
         } else {
             findMarker.setText("marker found");
             findMarker.setSelected(true);
@@ -1555,7 +1567,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             show_image.setVisibility(View.VISIBLE);
             videostreamPreviewTtView.setVisibility(View.INVISIBLE);
             videostreamPreviewSf.setVisibility(View.INVISIBLE);
-
+            show_grid.setVisibility(View.INVISIBLE);
             pathList.clear();
 
         }
