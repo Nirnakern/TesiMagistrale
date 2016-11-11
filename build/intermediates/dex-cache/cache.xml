@@ -133,7 +133,7 @@
         jumboMode="true"
         optimize="true"
         revision="23.0.2"
-        sha1="9f61a616ef40fcb6b7739b80abb3f2a35286fabf">
+        sha1="87d804795ad18afd65787f1c2cb660b61d48bfe6">
         <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run-bootstrap_655bcd5b2f50cb72c365d03c3ce6f327144afd87\classes.dex" />
     </item>
     <item
@@ -187,7 +187,7 @@
         jumboMode="true"
         optimize="true"
         revision="23.0.2"
-        sha1="a1aad0fa740e8a0c808591d458e043942ba25362">
+        sha1="9d1bddb7c69fc93c2f0c55c2b10a3d5b23e2fdfd">
         <dex dex="D:\android-videostreamdecodingsample\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run_97437ba965b08adae63a7963ba0cc96fbddc1ef4\classes.dex" />
     </item>
 

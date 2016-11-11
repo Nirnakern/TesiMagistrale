@@ -133,6 +133,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     //range colori accettabili
     double delta_min =0.50;
     double delta_max = 2.0;
+    double delta_color= 0.3;
 
     //clasterizzazione
 
@@ -185,11 +186,13 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean photo_taken = false;
     boolean angle_is_good =false;
     boolean distance_is_good = false;
-    int centre_position =720-150; //from botton=> 750-pos
+    int centre_position =720-100; //from botton=> 750-pos
 
     Point p1 = new Point();
     Point p2 = new Point();
     boolean point_updated=false;
+
+    boolean due_punti=false;
 
     //debug
 
@@ -552,9 +555,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         if (photo_taken==true){//ho appena fatto la foto, quindi mi sposto a dx
 
-            move_drone(0,90,0.05f,0,400); //mi muovo a dx a 75 cm/s per 0.4secondi
-            photo_taken=false;
-            showToast("muovo a dx");
+            if(due_punti==true){
+                move_drone(0,90,0.05f,0,400); //mi muovo a dx a 75 cm/s per 0.4secondi
+                photo_taken=false;
+                showToast("muovo a dx");
+                due_punti=false;
+            }
         }else {
 
             if ((DJIVideoStreamDecoder.getInstance().frameIndex % 180 == 0 && (button == 2 || (button == 1 && flag_find == false))) && moving == false) { //ricordati che prendi i dati a 30fps non 60
@@ -736,15 +742,44 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //get color of touched pixel in 0-255
         //Inverted becouse flipped screen
         if (flag==false) {
-            touched_R = pixels_red[y_touch][x_touch];
-            touched_G = (pixels_green[y_touch][x_touch]) >> 8;
-            touched_B = (pixels_blue[y_touch][x_touch]) >> 16;
+            touched_R =     (pixels_red[y_touch][x_touch]+
+                            pixels_red[y_touch+1][x_touch]+pixels_red[y_touch+2][x_touch]+
+                            pixels_red[y_touch-1][x_touch]+pixels_red[y_touch-2][x_touch]+
+                            pixels_red[y_touch][x_touch+1]+pixels_red[y_touch][x_touch+2]+
+                            pixels_red[y_touch][x_touch-1]+pixels_red[y_touch][x_touch-2])/9;
+            touched_G =     (((pixels_green[y_touch][x_touch]) >> 8)+
+                            ((pixels_green[y_touch+1][x_touch]) >> 8)+((pixels_green[y_touch+2][x_touch]) >> 8)+
+                            ((pixels_green[y_touch-1][x_touch]) >> 8)+((pixels_green[y_touch-2][x_touch]) >> 8)+
+                            ((pixels_green[y_touch][x_touch+1]) >> 8)+((pixels_green[y_touch][x_touch+2]) >> 8)+
+                            ((pixels_green[y_touch][x_touch-1]) >> 8)+((pixels_green[y_touch][x_touch-2]) >> 8))/9;
+            touched_B =     (((pixels_blue[y_touch][x_touch]) >> 16)+
+                            ((pixels_blue[y_touch+1][x_touch]) >> 16)+((pixels_blue[y_touch+2][x_touch]) >> 16)+
+                            ((pixels_blue[y_touch-1][x_touch]) >> 16)+((pixels_blue[y_touch-2][x_touch]) >> 16)+
+                            ((pixels_blue[y_touch][x_touch+1]) >> 16)+((pixels_blue[y_touch][x_touch+2]) >> 16)+
+                            ((pixels_blue[y_touch][x_touch-1]) >> 16)+((pixels_blue[y_touch][x_touch-2]) >> 16))/9;
             flag=true;
+            writeToFile(Integer.toString(touched_R)+"--"+Integer.toString(touched_G)+"--"+Integer.toString(touched_B),log_name   );
 
         }
 
+        if (touched_R==0)
+            touched_R=1;
+
+        if (touched_G==0)
+            touched_G=1;
+
+        if (touched_B==0)
+            touched_B=1;
+
+
+        Double rapporto_R_G= Double.valueOf(touched_R/touched_G);
+        Double rapporto_G_B= Double.valueOf(touched_G/touched_B);
+        Double rapporto_B_R= Double.valueOf(touched_B/touched_R);
+
+
 
         for (int i=0;i<width*height;i++){
+
 
 
             //rimappa in 0-255
@@ -752,10 +787,25 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             int shifted_green_pixel=(pixels_green[i/width][i%width])>>8;
             int shifted_blue_pixel=(pixels_blue[i/width][i%width])>>16;
 
+            if(shifted_red_pixel==0)
+                shifted_red_pixel=1;
 
-            if ((shifted_red_pixel>=touched_R*delta_min && shifted_red_pixel<=touched_R*delta_max)
-                    && (shifted_green_pixel>=touched_G*delta_min && shifted_green_pixel<=touched_G*delta_max)
-                    && (shifted_blue_pixel>=touched_B*delta_min && shifted_blue_pixel<=touched_B*delta_max)) {
+            if(shifted_green_pixel==0)
+                shifted_green_pixel=1;
+
+            if(shifted_blue_pixel==0)
+                shifted_blue_pixel=1;
+
+
+
+            Double rapporto_s_R_G= Double.valueOf(shifted_red_pixel/shifted_green_pixel);
+            Double rapporto_s_G_B= Double.valueOf(shifted_green_pixel/shifted_blue_pixel);
+            Double rapporto_s_B_R= Double.valueOf(shifted_blue_pixel/shifted_red_pixel);
+
+
+            if ((rapporto_s_R_G>=(rapporto_R_G*(1-delta_color)) && rapporto_s_R_G<=(rapporto_R_G*(1+delta_color)))
+                    && (rapporto_s_G_B>=(rapporto_G_B*(1-delta_color)) && rapporto_s_G_B<=(rapporto_G_B*(1+delta_color)))
+                    && (rapporto_s_B_R>=(rapporto_B_R*(1-delta_color)) && rapporto_s_B_R<=(rapporto_B_R*(1+delta_color)))) {
 
                 marker[i/width][i%width]=true;
 
@@ -785,7 +835,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //writeToFile("sono subito dopo aver trovato i centri",log_name);
         Double angle = compute_angle();
 
-            writeToFile("calcolo anggolo",log_name);
+           // writeToFile("calcolo anggolo",log_name);
 
 
             if (angle>-20 && angle<20){
@@ -794,8 +844,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 angle = angle%180;
                 if(angle>0 && angle<90){
                     showToast("ruoto a dx");
+                    angle_is_good=false;
                 }else{
                     showToast("ruoto a sx");
+                    angle_is_good=false;
                 }
 
 //
@@ -806,7 +858,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             }
          if(angle_is_good==true && distance_is_good==false){
 
-            writeToFile("calcolo distanza",log_name);
+           // writeToFile("calcolo distanza",log_name);
             int distance = compute_distance(angle);
 
             if (distance>-50 && distance <50){
@@ -829,7 +881,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         }else if (angle_is_good==true && distance_is_good==true){
-            writeToFile("tutto ok, setto position=true",log_name);
+           // writeToFile("tutto ok, setto position=true",log_name);
             position=true;
             angle_is_good=false;
             distance_is_good=false;
@@ -1124,6 +1176,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         if (local_centri_negative.size()>0 && local_centri_positive.size()>0) {
 
+            due_punti=true;
+
             p1.set(local_centri_negative.get(local_centri_negative.size()-1).coordinate.x,local_centri_negative.get(local_centri_negative.size()-1).coordinate.y);
             p2.set(local_centri_positive.get(0).coordinate.x,local_centri_positive.get(0).coordinate.y);
             point_updated=true;
@@ -1137,6 +1191,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
             return (x_centro - centre_position);
         }else {
+            due_punti=false;
             return 0;
         }
 
@@ -1240,6 +1295,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //writeToFile("local_centri ha dimensione"+Integer.toString(local_centri.size()),log_name);
         if (local_centri_positive.size()>0 && local_centri_negative.size()>0){
 
+            due_punti=true;
+
 
                 //writeToFile("primo angolo",log_name);
                 //writeToFile( local_centri.get(i).tostring()+ "   "+ local_centri.get(i+1).tostring(),log_name);
@@ -1259,6 +1316,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 point_updated=true;
 
 
+        }else{
+            due_punti=false;
         }
         //writeToFile("calcolato angoli",log_name);
         //showToast(Double.toString(angolo_attuale));

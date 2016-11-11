@@ -40,20 +40,20 @@ public final class R {
 	}
 	public static final class id {
 		public static final int bold = 0x7f0e001b;
-		public static final int dbg_region = 0x7f0e006b;
+		public static final int dbg_region = 0x7f0e006c;
 		public static final int demi = 0x7f0e001c;
-		public static final int log_dlg_content = 0x7f0e006f;
-		public static final int log_dlg_control = 0x7f0e0069;
-		public static final int log_dlg_lock = 0x7f0e006a;
-		public static final int log_dlg_rg = 0x7f0e0070;
-		public static final int log_dlg_scroll = 0x7f0e006e;
+		public static final int log_dlg_content = 0x7f0e0070;
+		public static final int log_dlg_control = 0x7f0e006a;
+		public static final int log_dlg_lock = 0x7f0e006b;
+		public static final int log_dlg_rg = 0x7f0e0071;
+		public static final int log_dlg_scroll = 0x7f0e006f;
 		public static final int nbold = 0x7f0e001d;
 		public static final int nlight = 0x7f0e001e;
-		public static final int numberPicker1 = 0x7f0e006c;
+		public static final int numberPicker1 = 0x7f0e006d;
 		public static final int pad = 0x7f0e0019;
 		public static final int phone = 0x7f0e001a;
-		public static final int set_sre_button = 0x7f0e006d;
-		public static final int webview = 0x7f0e0068;
+		public static final int set_sre_button = 0x7f0e006e;
+		public static final int webview = 0x7f0e0069;
 	}
 	public static final class layout {
 		public static final int dialog_login = 0x7f04001b;

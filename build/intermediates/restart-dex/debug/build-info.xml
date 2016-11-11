@@ -5,29 +5,29 @@
     density="560dpi"
     format="8"
     plugin-version="2.2.2"
-    timestamp="54973012671121"
+    timestamp="39919790450525"
     token="7250888418800822986"
     verifier="FULL_BUILD_REQUESTED" >
 
     <task
         name="javac"
-        duration="798" />
+        duration="1442" />
     <task
         name="instant-run-dex"
         duration="0" />
     <task
         name="instant-run-transform"
-        duration="1009" />
+        duration="1932" />
     <task
         name="verifier"
-        duration="149" />
+        duration="559" />
 
     <artifact
         location="D:\android-videostreamdecodingsample\build\outputs\apk\android-videostreamdecodingsample-debug.apk"
         type="MAIN" />
 
     <build
-        timestamp="54973012671121"
+        timestamp="39919790450525"
         verifier="FULL_BUILD_REQUESTED" >
         <artifact
             location="D:\android-videostreamdecodingsample\build\outputs\apk\android-videostreamdecodingsample-debug.apk"

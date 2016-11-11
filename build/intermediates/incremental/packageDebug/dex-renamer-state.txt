@@ -1,4 +1,4 @@
-#Sun Nov 06 11:13:35 CET 2016
+#Fri Nov 11 09:24:57 CET 2016
 base.0=D\:\\android-videostreamdecodingsample\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10\\instant-run_97437ba965b08adae63a7963ba0cc96fbddc1ef4
 renamed.1=classes.dex
 renamed.0=classes2.dex
