@@ -59,6 +59,19 @@
         android:layout_alignParentStart="true"
         android:keepScreenOn="true"/>
 
+    <ImageView
+    android:id="@+id/show_grid"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:layout_below="@id/main_title_rl"
+
+    android:cropToPadding="true"
+    android:layout_centerVertical="true"
+    android:layout_alignParentStart="true"
+    android:keepScreenOn="true"/>
+
+
     <TextView
         android:id="@+id/activity_main_find_marker"
         android:layout_width="100dp"
@@ -163,12 +176,12 @@
         android:layout_alignParentStart="true" />
 
     <TextView
-        android:id="@+id/prove"
+        android:id="@+id/set_point"
         android:layout_width="100dp"
         android:layout_height="30dp"
-        android:text="prova"
+        android:text="set"
         android:clickable="true"
-        android:onClick="onClick_prova"
+        android:onClick="onClick_set_point"
         android:padding="5dp"
         android:gravity="center"
         android:background="@color/colorWhite"

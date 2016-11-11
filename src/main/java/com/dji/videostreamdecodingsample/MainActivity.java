@@ -762,6 +762,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         }
 
+
         if (touched_R==0)
             touched_R=1;
 
@@ -1609,6 +1610,30 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     public void onClick_start(View v) {
 
         start_drone();
+
+
+    }
+
+    public void onClick_set_point(View v){
+
+        int[] loc = new int[2];
+        videostreamPreviewSf.getLocationOnScreen(loc);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        x_touch = 1280/2; //x touch position
+        y_touch = centre_position; //y touch position
+
+
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(null);
+        flag=false;
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
+
+
 
 
     }
