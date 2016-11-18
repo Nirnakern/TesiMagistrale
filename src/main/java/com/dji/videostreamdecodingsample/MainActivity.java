@@ -51,6 +51,7 @@ import java.util.TimerTask;
 
 
 import dji.common.camera.DJICameraSettingsDef;
+import dji.common.camera.DJICameraSettingsDef.CameraWhiteBalance;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.DJIFlightControllerControlMode;
 import dji.common.flightcontroller.DJIFlightControllerDataType;
@@ -133,9 +134,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     boolean flag=false;
 
     //range colori accettabili
-    double delta_min =0.50;
-    double delta_max = 2.0;
-    double delta_color= 0.3;
+    double delta_min =0.7;
+    double delta_max = 1.5;
+    double delta_color= 0.1;
 
     //clasterizzazione
 
@@ -199,6 +200,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     //debug
 
     int debug_contatore=0;
+
+    //uderexpose factor
+
+    int underexposed=0;
+    int overexposed=-1;
 
 
 
@@ -268,6 +274,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         initPreviewer();
         initFlightController();
 
+
         //start_drone();
         //enable_virtual_control();
 
@@ -277,6 +284,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         float throttle = 0.0f; //
         float pitch =01.0f; // sposto di lato
         float roll = 00.0f; // 10m/s credo sposto dritto
+
 
        //move_drone(yaw,throttle,pitch,roll,3000);
 
@@ -292,6 +300,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 //        move_drone(0.5f, 0.5f ,0.5f, 0.5f);
     }
+
 
 
 
@@ -578,7 +587,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 debug_contatore++;
                 writeToFile(Integer.toString(debug_contatore),log_name);
 
-                if (position==true){
+                if (position==true && false){
                     writeToFile("faccio foto",log_name);
                     shootSD();
                     photo_taken=true;
@@ -752,6 +761,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         //get color of touched pixel in 0-255
         //Inverted becouse flipped screen
+
+        //trovo il colore di riferimento
         if (flag==false) {
             touched_R =     (pixels_red[y_touch][x_touch]+
                             pixels_red[y_touch+1][x_touch]+pixels_red[y_touch+2][x_touch]+
@@ -769,9 +780,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                             ((pixels_blue[y_touch][x_touch+1]) >> 16)+((pixels_blue[y_touch][x_touch+2]) >> 16)+
                             ((pixels_blue[y_touch][x_touch-1]) >> 16)+((pixels_blue[y_touch][x_touch-2]) >> 16))/9;
             flag=true;
-            //writeToFile(Integer.toString(touched_R)+"--"+Integer.toString(touched_G)+"--"+Integer.toString(touched_B),log_name   );
 
         }
+
 
 
         if (touched_R==0)
@@ -784,20 +795,40 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             touched_B=1;
 
 
+
         Double rapporto_R_G= Double.valueOf(touched_R/touched_G);
         Double rapporto_G_B= Double.valueOf(touched_G/touched_B);
         Double rapporto_B_R= Double.valueOf(touched_B/touched_R);
 
 
+        int touched_R_min = (int) (touched_R*delta_min);
+        int touched_R_max = (int) (touched_R*delta_max);
 
-        for (int i=1;i<height-1;i++){//altezza
-            for (int j=1;j<width-1;j++) {//larghezza
+        int touched_G_min = (int) (touched_G*delta_min);
+        int touched_G_max = (int) (touched_G*delta_max);
+
+        int touched_B_min = (int) (touched_B*delta_min);
+        int touched_B_max = (int) (touched_B*delta_max);
+
+
+        Double rapporto_R_G_min =rapporto_R_G * (1 - delta_color);
+        Double rapporto_R_G_max =rapporto_R_G * (1 + delta_color);
+
+        Double rapporto_G_B_min =rapporto_G_B * (1 - delta_color);
+        Double rapporto_G_B_max =rapporto_G_B * (1 + delta_color);
+
+        Double rapporto_B_R_min =rapporto_B_R * (1 - delta_color);
+        Double rapporto_B_R_max =rapporto_B_R * (1 + delta_color);
+
+        for (int i=450;i<height-1;i=i+1){//altezza
+            for (int j=200;j<width-200;j=j+1) {//larghezza
 
 
                 //rimappa in 0-255
                 int shifted_red_pixel = pixels_red[i][j];
                 int shifted_green_pixel = (pixels_green[i][j]) >> 8;
                 int shifted_blue_pixel = (pixels_blue[i][j]) >> 16;
+//
 
                 if (shifted_red_pixel == 0)
                     shifted_red_pixel = 1;
@@ -808,15 +839,19 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 if (shifted_blue_pixel == 0)
                     shifted_blue_pixel = 1;
 
+               // point_hsv =convertHSV(shifted_red_pixel,shifted_green_pixel,shifted_blue_pixel);
 
                 Double rapporto_s_R_G = Double.valueOf(shifted_red_pixel / shifted_green_pixel);
                 Double rapporto_s_G_B = Double.valueOf(shifted_green_pixel / shifted_blue_pixel);
                 Double rapporto_s_B_R = Double.valueOf(shifted_blue_pixel / shifted_red_pixel);
 
 
-                if ((rapporto_s_R_G >= (rapporto_R_G * (1 - delta_color)) && rapporto_s_R_G <= (rapporto_R_G * (1 + delta_color)))
-                        && (rapporto_s_G_B >= (rapporto_G_B * (1 - delta_color)) && rapporto_s_G_B <= (rapporto_G_B * (1 + delta_color)))
-                        && (rapporto_s_B_R >= (rapporto_B_R * (1 - delta_color)) && rapporto_s_B_R <= (rapporto_B_R * (1 + delta_color)))) {
+                if (((rapporto_s_R_G >= (rapporto_R_G_min) && rapporto_s_R_G <= (rapporto_R_G_max))
+                        && (rapporto_s_G_B >= (rapporto_G_B_min) && rapporto_s_G_B <= (rapporto_G_B_max))
+                        && (rapporto_s_B_R >= (rapporto_B_R_min) && rapporto_s_B_R <= (rapporto_B_R_max)))
+                        || (((shifted_red_pixel>touched_R_min) && (shifted_red_pixel<touched_R_max))
+                        && ((shifted_green_pixel>touched_G_min) && (shifted_green_pixel<touched_G_max))
+                        && ((shifted_blue_pixel>touched_B_min) && (shifted_blue_pixel<touched_B_max)))) {
 
                     marker[i][j] = true;
 
@@ -828,11 +863,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                     marker[i][j] = false;
                 }
 
-                pixels_red[i][j] = shifted_red_pixel;
-                pixels_green[i][j] = shifted_green_pixel << 8;
-                pixels_blue[i][j] = shifted_blue_pixel << 16;
+                //pixels_red[i][j] = shifted_red_pixel;
+                //pixels_green[i][j] = shifted_green_pixel << 8;
+                //pixels_blue[i][j] = shifted_blue_pixel << 16;
             }
         }
+
 
 
 
@@ -843,10 +879,12 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
 
         find_center(marker, width, height);
+      //  update_ref_color(marker, width, height,pixels_red,pixels_green,pixels_blue);
+
         //writeToFile("sono subito dopo aver trovato i centri",log_name);
         Double angle = compute_angle();
 
-           // writeToFile("calcolo anggolo",log_name);
+           //writeToFile("calcolo anggolo",log_name);
 
 
             if (angle>-20 && angle<20){
@@ -965,58 +1003,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         int centro_x=640;
         int centro_y =360;
 
-        //coloro di blu l'angolo
-        /*for (int i=0;i<30;i++){
 
-            int shifted_red_pixel=0;
-            int shifted_green_pixel=0;
-            int shifted_blue_pixel=255;
-
-            int y= (int) (Math.tan(Math.toRadians(angle))*i);
-
-
-            //evito di uscire dall'array
-            int centro_piu_y = centro_y+y;
-            int centro_meno_y = centro_y-y;
-
-            if (centro_piu_y<0)
-                centro_piu_y=0;
-            if (centro_piu_y>719)
-                centro_piu_y=719;
-
-
-            if (centro_meno_y<0)
-                centro_meno_y=0;
-            if (centro_meno_y>719)
-                centro_meno_y=719;
-
-            int centro_piu_i = centro_y+y;
-            int centro_meno_i = centro_y-y;
-
-            if (centro_piu_i<0)
-                centro_piu_i=0;
-            if (centro_piu_i>1279)
-                centro_piu_i=1279;
-
-
-            if (centro_meno_i<0)
-                centro_meno_i=0;
-            if (centro_meno_i>1279)
-                centro_meno_i=1279;
-
-            pixels_red[centro_piu_y][centro_piu_i]=shifted_red_pixel;
-            pixels_green[centro_piu_y][centro_piu_i]=shifted_green_pixel<<8;
-            pixels_blue[centro_piu_y][centro_piu_i]=shifted_blue_pixel<<16;
-
-            pixels_red[centro_meno_y][centro_meno_i]=shifted_red_pixel;
-            pixels_green[centro_meno_y][centro_meno_i]=shifted_green_pixel<<8;
-            pixels_blue[centro_meno_y][centro_meno_i]=shifted_blue_pixel<<16;
-
-
-
-
-
-        }*/
 
         //writeToFile("arrivo a dover mostrare img",log_name);
 
@@ -1126,6 +1113,91 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         yuvToRgbIntrinsic.destroy();
         in.destroy();
         out.destroy();
+
+    }
+
+    private void update_ref_color(boolean[][] marker, int width, int height, int[][] pixels_red, int[][] pixels_green, int[][] pixels_blue) {
+
+        writeToFile("RGB before:"+Integer.toString(touched_R)+"-"+Integer.toString(touched_G)+"-"+Integer.toString(touched_B),log_name);
+        int elem=0;
+        int red=0;
+        int green=0;
+        int blue=0;
+
+
+        for (int i=0;i<centri.size();i++){
+            for (int j=0;j<14;j++){
+
+                int c =j-(j/2);
+                Point temp_center = new Point(centri.get(i).x, centri.get(i).y);
+
+                int temp_center_y_plus_c=temp_center.y+c;
+                int temp_center_y_minus_c=temp_center.y-c;
+                int temp_center_x_plus_c=temp_center.x+c;
+                int temp_center_x_minus_c=temp_center.x-c;
+
+                if (temp_center_y_plus_c<720) {
+
+                    if(marker[temp_center_y_plus_c][temp_center.x]==true){
+                        elem++;
+                        red =red+(pixels_red[temp_center_y_plus_c][temp_center.x]);
+                        green =green+((pixels_green[temp_center_y_plus_c][temp_center.x])>>8);
+                        blue =blue+((pixels_blue[temp_center_y_plus_c][temp_center.x])>>16);
+                        //writeToFile(Integer.toString(((pixels_blue[temp_center_y_plus_c][temp_center.x])>>16)),log_name);
+                    }
+
+
+                }
+
+                if (temp_center_x_plus_c<1280) {
+
+                    if(marker[temp_center.y][temp_center_x_plus_c]==true){
+                        elem++;
+                        red =red+(pixels_red[temp_center.y][temp_center_x_plus_c]);
+                        green =green+((pixels_green[temp_center.y][temp_center_x_plus_c])>>8);
+                        blue =blue+((pixels_blue[temp_center.y][temp_center_x_plus_c])>>16);
+                        //writeToFile(Integer.toString(((pixels_blue[temp_center.y][temp_center_x_plus_c])>>16)),log_name);
+                    }
+
+
+                }
+
+                if(temp_center_y_minus_c>0) {
+
+                    if(marker[temp_center_y_minus_c][temp_center.x]==true){
+                        elem++;
+                        red =red+(pixels_red[temp_center_y_minus_c][temp_center.x]);
+                        green =green+((pixels_green[temp_center_y_minus_c][temp_center.x])>>8);
+                        blue =blue+((pixels_blue[temp_center_y_minus_c][temp_center.x])>>16);
+                        //writeToFile(Integer.toString(((pixels_blue[temp_center_y_minus_c][temp_center.x])>>16)),log_name);
+                    }
+
+
+                }
+
+                if(temp_center_x_minus_c>0) {
+
+                    if(marker[temp_center.y][temp_center_x_minus_c]==true){
+                        elem++;
+                        red =red+(pixels_red[temp_center.y][temp_center_x_minus_c]);
+                        green =green+((pixels_green[temp_center.y][temp_center_x_minus_c])>>8);
+                        blue =blue+((pixels_blue[temp_center.y][temp_center_x_minus_c])>>16);
+                        //writeToFile(Integer.toString(((pixels_blue[temp_center.y][temp_center_x_minus_c])>>16)),log_name);
+                    }
+
+                }
+
+
+
+
+
+            }
+
+            touched_R=(red/elem);
+            touched_G=(green/elem);
+            touched_B=(blue/elem);
+            writeToFile("RGB after:"+Integer.toString(touched_R)+"-"+Integer.toString(touched_G)+"-"+Integer.toString(touched_B),log_name);
+        }
 
     }
 
@@ -1516,6 +1588,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         long dim_media=0;
 
+        //qui controllo cosa ho trovato e non salvo quei centri che reputo sbagliati, in base al numero di punti aggregati, e al numero di punti sensati
+
         if (completed_marker.size()>0) {
             for (int i = 0; i < completed_marker.size(); i++) {
                 dim_media = dim_media + completed_marker.get(i).num_sum;
@@ -1528,7 +1602,33 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 if (completed_marker.get(i).num_sum > dim_media * delta_min_dim && completed_marker.get(i).num_sum < dim_media * delta_max_dim) {
                     //writeToFile("Centro:" + Integer.toString(completed_marker.get(i).compute_x()) + "-:" + Integer.toString(completed_marker.get(i).compute_y()), log_name);
 
-                    centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
+                    Point centro_temp = new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y());
+
+                    int good_points=0;
+
+                    for (int j=0;j<3;j++){
+
+                        if (marker[centro_temp.y+j][centro_temp.x]==true){
+                            good_points++;
+                        }
+                        if (marker[centro_temp.y-j][centro_temp.x]==true){
+                            good_points++;
+                        }
+                        if (marker[centro_temp.y][centro_temp.x+j]==true){
+                            good_points++;
+                        }
+                        if (marker[centro_temp.y][centro_temp.x-j]==true){
+                            good_points++;
+                        }
+
+                    }
+
+                    if (good_points>10) {
+                        centri.add(new Point(completed_marker.get(i).compute_x(), completed_marker.get(i).compute_y()));
+                        writeToFile("aggiungo centro",log_name);
+                    }else{
+                        writeToFile("scarto centro",log_name);
+                    }
 
                 }
             }
@@ -1649,6 +1749,151 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     }
 
+    public void onClick_underexpose (View v){
+
+        underexposed=underexposed+1;
+        overexposed=-1;
+
+
+        switch (underexposed){
+            case 1: mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.N_1_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("underexposed -1ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+
+            case 2:mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.N_2_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("underexposed -2ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+            case 3: mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.N_2_7,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("underexposed -2.7ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+
+            case 4:mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.N_3_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("underexposed -3.3ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+
+
+        }
+
+    }
+
+    public void onClick_overexpose (View v){
+        underexposed=0;
+        overexposed=overexposed+1;
+
+
+        switch (overexposed){
+            case 0: mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.N_0_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("normal exp");
+                            }
+                        }
+                    }
+            ));
+                break;
+            case 1: mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.P_1_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("overexposed +1ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+
+            case 2:mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.P_2_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("overexposed +2ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+            case 3: mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.P_2_7,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("overexposed +2.7ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+            case 4:mCamera.setExposureCompensation(DJICameraSettingsDef.CameraExposureCompensation.P_3_0,(
+                    new DJICommonCallbacks.DJICompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                //showToast(djiError.getDescription());
+                            } else {
+                                showToast("overexposed +3.0ev");
+                            }
+                        }
+                    }
+            ));
+                break;
+
+
+        }
+
+    }
+
     public void onClick_rotate(View v) {
 
         move_drone(90,0,0,0,1000);
@@ -1699,7 +1944,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         savePath.setText(stringBuilder.toString());
     }
 
-    @Override
+   /* @Override
     public synchronized boolean onTouchEvent(MotionEvent event) {
 
 
@@ -1732,7 +1977,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         return false;
     }
-
+*/
 
     private void initFlightController() {
         DJIAircraft aircraft = MainActivity.getAircraftInstance();
@@ -1836,8 +2081,6 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
     }
-
-
 
 
 
