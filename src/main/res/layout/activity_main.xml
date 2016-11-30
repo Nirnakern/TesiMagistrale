@@ -87,37 +87,12 @@
         android:layout_below="@id/main_title_rl"
         />
 
-    <TextView
-        android:id="@+id/activity_main_save_path"
-        android:layout_width="300dp"
-        android:layout_height="match_parent"
-        android:layout_alignParentRight="true"
-        android:layout_below="@id/main_title_rl"
-        android:textColor="@color/colorWhite"
-        android:visibility="invisible"
-        />
-
-
-    <TextView
-        android:id="@+id/activity_main_land"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="Start Landing"
-        android:clickable="true"
-        android:onClick="onClick_land"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_below="@+id/activity_main_start_moving"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="13dp" />
 
     <TextView
         android:id="@+id/activity_main_start_moving"
         android:layout_width="100dp"
         android:layout_height="30dp"
-        android:text="Start Moving"
+        android:text="AI"
         android:clickable="true"
         android:onClick="onClick_move"
         android:padding="5dp"
@@ -128,11 +103,12 @@
         android:layout_below="@+id/activity_main_find_marker"
         android:layout_alignParentStart="true" />
 
+
     <TextView
         android:id="@+id/activity_main_start"
         android:layout_width="100dp"
         android:layout_height="30dp"
-        android:text="Take off"
+        android:text="TakeOff"
         android:clickable="true"
         android:onClick="onClick_start"
         android:padding="5dp"
@@ -140,40 +116,10 @@
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
         android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_land"
-        android:layout_alignParentStart="true" />
-
-    <TextView
-        android:id="@+id/activity_main_pause"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="pause"
-        android:clickable="true"
-        android:onClick="onClick_pause"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_start"
+        android:layout_below="@+id/activity_main_start_moving"
         android:layout_alignParentStart="true" />
 
 
-
-    <TextView
-        android:id="@+id/activity_main_panic_button"
-        android:layout_width="100dp"
-        android:layout_height="30dp"
-        android:text="PANIC"
-        android:clickable="true"
-        android:onClick="onClick_panic"
-        android:padding="5dp"
-        android:gravity="center"
-        android:background="@color/colorWhite"
-        android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_pause"
-        android:layout_alignParentStart="true" />
 
     <TextView
         android:id="@+id/set_point"
@@ -187,38 +133,63 @@
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
         android:layout_marginTop="13dp"
-        android:layout_below="@+id/activity_main_panic_button"
+        android:layout_below="@+id/activity_main_start"
         android:layout_alignParentStart="true" />
+
+
+    <TextView
+        android:id="@+id/exposure_value"
+        android:text="exposure"
+        android:layout_above="@+id/underexpose"
+        android:layout_below="@+id/main_title_rl"
+        android:layout_alignParentEnd="true"
+        android:layout_alignStart="@+id/underexpose"
+        android:layout_width="70dp"
+        android:layout_height="30dp"
+        android:gravity="center"
+        android:background="@color/colorWhite"
+        android:textColor="@color/colorBlack"
+        android:clickable="true"
+        android:onClick="onClick_exposure"
+        />
 
     <TextView
         android:id="@+id/underexpose"
-        android:layout_width="100dp"
         android:layout_height="30dp"
-        android:text="underexp"
+        android:text="-"
         android:clickable="true"
         android:onClick="onClick_underexpose"
         android:padding="5dp"
         android:gravity="center"
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/set_point"
-        android:layout_alignParentStart="true" />
+        android:layout_width="35dp"
+        android:layout_below="@+id/activity_main_find_marker"
+        android:layout_toStartOf="@+id/overexpose" />
 
     <TextView
         android:id="@+id/overexpose"
-        android:layout_width="100dp"
+        android:layout_width="35dp"
         android:layout_height="30dp"
-        android:text="overexp"
+        android:text="+"
         android:clickable="true"
         android:onClick="onClick_overexpose"
         android:padding="5dp"
         android:gravity="center"
         android:background="@color/colorWhite"
         android:textColor="@color/colorBlack"
-        android:layout_marginTop="13dp"
-        android:layout_below="@+id/underexpose"
-        android:layout_alignParentStart="true" />
+        android:layout_below="@+id/exposure_value"
+        android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:id="@+id/activity_main_movement"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:layout_below="@id/main_title_rl"
+        android:textColor="@color/colorWhite"
+        android:visibility="invisible"
+        />
 
 
     <!--<TextView
