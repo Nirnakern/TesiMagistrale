@@ -129,15 +129,23 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     int x_touch=0;
     int y_touch=0;
 
-    int touched_R=0;
-    int touched_G=0;
-    int touched_B=0;
-    boolean flag=false;
+    int touched_R=Integer.MAX_VALUE;
+    int touched_G=Integer.MAX_VALUE;
+    int touched_B=Integer.MAX_VALUE;
+    boolean flag=true;
+
+    int touched_R2=Integer.MAX_VALUE;
+    int touched_G2=Integer.MAX_VALUE;
+    int touched_B2=Integer.MAX_VALUE;
+    boolean flag2=true;
 
     //range colori accettabili
     double delta_min =0.7;
-    double delta_max = 1.5;
+    double delta_max = 1.45;
     double delta_color= 0.1;
+
+    // dimensione minima marker
+    int dim_min_marker=80;
 
     //clasterizzazione
 
@@ -453,8 +461,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         findMarker = (TextView) findViewById(R.id.activity_main_find_marker);
         findMarker.setSelected(false);
         startMoving = (TextView) findViewById(R.id.activity_main_start_moving);
-        start_stop = (TextView) findViewById(R.id.activity_main_start);
-        start_stop.setSelected(false);
+        //start_stop = (TextView) findViewById(R.id.activity_main_start);
+        //start_stop.setSelected(false);
         exposure_value = (TextView) findViewById(R.id.exposure_value);
         exposure_value.setSelected(false);
         titleTv = (TextView) findViewById(R.id.title_tv);
@@ -587,7 +595,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             if ((DJIVideoStreamDecoder.getInstance().frameIndex % 120 == 0 ) && moving == false) { //ricordati che prendi i dati a 30fps non 60 (valore min 60)
                 debug_contatore++;
                 //writeToFile(Integer.toString(debug_contatore),log_name);
-
+                shootSD();
                 if (position==true && leave_control==true ){ //se la posizione è ok e AI ha il controlloe     //HAI MESSO FALSE PER NON FARE FOTO PER ORA
                     mosse.add("photo");
                     writeToFile("faccio foto",log_name);
@@ -674,7 +682,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                     if (error == null) {
                         //showToast("take photo: success");
                     } else {
-                        showToast(error.getDescription());
+                        //showToast(error.getDescription());
                     }
                 }
             }); // Execute the startShootPhoto API
@@ -770,6 +778,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         //Inverted becouse flipped screen
 
         //trovo il colore di riferimento
+
+        //set1
         if (flag==false) {
             touched_R =     (pixels_red[y_touch][x_touch]+
                             pixels_red[y_touch+1][x_touch]+pixels_red[y_touch+2][x_touch]+
@@ -789,9 +799,29 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
             flag=true;
 
         }
+        //set2
+        if (flag2==false) {
+            touched_R2 =     (pixels_red[y_touch][x_touch]+
+                    pixels_red[y_touch+1][x_touch]+pixels_red[y_touch+2][x_touch]+
+                    pixels_red[y_touch-1][x_touch]+pixels_red[y_touch-2][x_touch]+
+                    pixels_red[y_touch][x_touch+1]+pixels_red[y_touch][x_touch+2]+
+                    pixels_red[y_touch][x_touch-1]+pixels_red[y_touch][x_touch-2])/9;
+            touched_G2 =     (((pixels_green[y_touch][x_touch]) >> 8)+
+                    ((pixels_green[y_touch+1][x_touch]) >> 8)+((pixels_green[y_touch+2][x_touch]) >> 8)+
+                    ((pixels_green[y_touch-1][x_touch]) >> 8)+((pixels_green[y_touch-2][x_touch]) >> 8)+
+                    ((pixels_green[y_touch][x_touch+1]) >> 8)+((pixels_green[y_touch][x_touch+2]) >> 8)+
+                    ((pixels_green[y_touch][x_touch-1]) >> 8)+((pixels_green[y_touch][x_touch-2]) >> 8))/9;
+            touched_B2 =     (((pixels_blue[y_touch][x_touch]) >> 16)+
+                    ((pixels_blue[y_touch+1][x_touch]) >> 16)+((pixels_blue[y_touch+2][x_touch]) >> 16)+
+                    ((pixels_blue[y_touch-1][x_touch]) >> 16)+((pixels_blue[y_touch-2][x_touch]) >> 16)+
+                    ((pixels_blue[y_touch][x_touch+1]) >> 16)+((pixels_blue[y_touch][x_touch+2]) >> 16)+
+                    ((pixels_blue[y_touch][x_touch-1]) >> 16)+((pixels_blue[y_touch][x_touch-2]) >> 16))/9;
+            flag2=true;
+
+        }
 
 
-
+//set1
         if (touched_R==0)
             touched_R=1;
 
@@ -800,9 +830,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         if (touched_B==0)
             touched_B=1;
+//set2
+        if (touched_R2==0)
+            touched_R2=1;
+
+        if (touched_G2==0)
+            touched_G2=1;
+
+        if (touched_B2==0)
+            touched_B2=1;
 
 
-
+//set1
         Double rapporto_R_G= Double.valueOf(touched_R/touched_G);
         Double rapporto_G_B= Double.valueOf(touched_G/touched_B);
         Double rapporto_B_R= Double.valueOf(touched_B/touched_R);
@@ -827,6 +866,31 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         Double rapporto_B_R_min =rapporto_B_R * (1 - delta_color);
         Double rapporto_B_R_max =rapporto_B_R * (1 + delta_color);
 
+        //set2
+        Double rapporto_R_G2= Double.valueOf(touched_R2/touched_G2);
+        Double rapporto_G_B2= Double.valueOf(touched_G2/touched_B2);
+        Double rapporto_B_R2= Double.valueOf(touched_B2/touched_R2);
+
+
+        int touched_R_min2 = (int) (touched_R2*delta_min);
+        int touched_R_max2 = (int) (touched_R2*delta_max);
+
+        int touched_G_min2 = (int) (touched_G2*delta_min);
+        int touched_G_max2 = (int) (touched_G2*delta_max);
+
+        int touched_B_min2 = (int) (touched_B2*delta_min);
+        int touched_B_max2 = (int) (touched_B2*delta_max);
+
+
+        Double rapporto_R_G_min2 =rapporto_R_G2 * (1 - delta_color);
+        Double rapporto_R_G_max2 =rapporto_R_G2 * (1 + delta_color);
+
+        Double rapporto_G_B_min2 =rapporto_G_B2 * (1 - delta_color);
+        Double rapporto_G_B_max2 =rapporto_G_B2 * (1 + delta_color);
+
+        Double rapporto_B_R_min2 =rapporto_B_R2 * (1 - delta_color);
+        Double rapporto_B_R_max2 =rapporto_B_R2 * (1 + delta_color);
+
         for (int i=450;i<height-1;i=i+1){//altezza
             for (int j=200;j<width-200;j=j+1) {//larghezza
 
@@ -846,19 +910,25 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 if (shifted_blue_pixel == 0)
                     shifted_blue_pixel = 1;
 
-               // point_hsv =convertHSV(shifted_red_pixel,shifted_green_pixel,shifted_blue_pixel);
+
 
                 Double rapporto_s_R_G = Double.valueOf(shifted_red_pixel / shifted_green_pixel);
                 Double rapporto_s_G_B = Double.valueOf(shifted_green_pixel / shifted_blue_pixel);
                 Double rapporto_s_B_R = Double.valueOf(shifted_blue_pixel / shifted_red_pixel);
 
 
-                if (((rapporto_s_R_G >= (rapporto_R_G_min) && rapporto_s_R_G <= (rapporto_R_G_max))
+                if ((((rapporto_s_R_G >= (rapporto_R_G_min) && rapporto_s_R_G <= (rapporto_R_G_max))
                         && (rapporto_s_G_B >= (rapporto_G_B_min) && rapporto_s_G_B <= (rapporto_G_B_max))
                         && (rapporto_s_B_R >= (rapporto_B_R_min) && rapporto_s_B_R <= (rapporto_B_R_max)))
                         || (((shifted_red_pixel>touched_R_min) && (shifted_red_pixel<touched_R_max))
                         && ((shifted_green_pixel>touched_G_min) && (shifted_green_pixel<touched_G_max))
-                        && ((shifted_blue_pixel>touched_B_min) && (shifted_blue_pixel<touched_B_max)))) {
+                        && ((shifted_blue_pixel>touched_B_min) && (shifted_blue_pixel<touched_B_max)))) ||
+                        (((rapporto_s_R_G >= (rapporto_R_G_min2) && rapporto_s_R_G <= (rapporto_R_G_max2))
+                                && (rapporto_s_G_B >= (rapporto_G_B_min2) && rapporto_s_G_B <= (rapporto_G_B_max2))
+                                && (rapporto_s_B_R >= (rapporto_B_R_min2) && rapporto_s_B_R <= (rapporto_B_R_max2)))
+                                || (((shifted_red_pixel>touched_R_min2) && (shifted_red_pixel<touched_R_max2))
+                                && ((shifted_green_pixel>touched_G_min2) && (shifted_green_pixel<touched_G_max2))
+                                && ((shifted_blue_pixel>touched_B_min2) && (shifted_blue_pixel<touched_B_max2))))) {
 
                     marker[i][j] = true;
 
@@ -1571,13 +1641,18 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         //qui controllo cosa ho trovato e non salvo quei centri che reputo sbagliati, in base al numero di punti aggregati, e al numero di punti sensati
 
+
+        int my_temp_count=0;
         if (completed_marker.size()>0) {
             for (int i = 0; i < completed_marker.size(); i++) {
-                dim_media = dim_media + completed_marker.get(i).num_sum;
+                if(completed_marker.get(i).num_sum>dim_min_marker) {
+                    dim_media = dim_media + completed_marker.get(i).num_sum;
+                    my_temp_count++;
+                }
             }
-
-            dim_media = dim_media / completed_marker.size();
-
+            if(my_temp_count!=0) {
+                dim_media = dim_media / my_temp_count;
+            }
             for (int i = 0; i < completed_marker.size(); i++) {
 
                 if (completed_marker.get(i).num_sum > dim_media * delta_min_dim && completed_marker.get(i).num_sum < dim_media * delta_max_dim) {
@@ -1715,6 +1790,30 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         DJIVideoStreamDecoder.getInstance().changeSurface(null);
         flag=false;
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
+
+
+
+
+    }
+
+    public void onClick_set_point2(View v){
+
+        int[] loc = new int[2];
+        videostreamPreviewSf.getLocationOnScreen(loc);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        x_touch = 1280/2; //x touch position
+        y_touch = centre_position; //y touch position
+
+
+
+        DJIVideoStreamDecoder.getInstance().changeSurface(null);
+        flag2=false;
 
         DJIVideoStreamDecoder.getInstance().changeSurface(videostreamPreviewSh.getSurface());
 
